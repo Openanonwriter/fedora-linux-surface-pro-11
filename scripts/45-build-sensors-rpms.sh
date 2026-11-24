@@ -249,10 +249,19 @@ RPM=$(build_rpm "$SPEC_DIR/sp11-sensors.spec.in" sp11-sensors "$SDIR" \
   STAGE="$STAGE" VERSION="$SENSORS_VERSION" SKU="$SP11_SKU" VARIANT="$(variant_label)" \
   SNSCFG="$(basename "$SNSCFG")" PAYLOAD_DIR="$SENSORS_PAYLOAD_DIR" \
   INPUTS="$INPUTS")
-rpm -qpl "$RPM" | grep -x "$SENSORS_PAYLOAD_DIR/sensors/registry/sns_reg_config" >/dev/null || die "sp11-sensors RPM lacks the registry"
-rpm -qpl "$RPM" | grep -x "$SENSORS_PAYLOAD_DIR/sensors/registry-parent/sns_reg_version" >/dev/null || die "sp11-sensors RPM lacks sns_reg_version beside the registry"
-! rpm -qpl "$RPM" | grep -x "$SENSORS_PAYLOAD_DIR/sensors/registry/sns_reg_version" >/dev/null || die "sp11-sensors RPM still carries sns_reg_version among the registry entries"
-rpm -qpl "$RPM" | grep -x "$SENSORS_PAYLOAD_DIR/socinfo/hw_platform" >/dev/null || die "sp11-sensors RPM lacks the platform identity"
+if [ "$NO_REGISTRY" != 1 ]; then
+  rpm -qpl "$RPM" | grep -x "$SENSORS_PAYLOAD_DIR/sensors/registry/sns_reg_config" >/dev/null || die "sp11-sensors RPM lacks the registry"
+  rpm -qpl "$RPM" | grep -x "$SENSORS_PAYLOAD_DIR/sensors/registry-parent/sns_reg_version" >/dev/null || die "sp11-sensors RPM lacks sns_reg_version beside the registry"
+  ! rpm -qpl "$RPM" | grep -x "$SENSORS_PAYLOAD_DIR/sensors/registry/sns_reg_version" >/dev/null || die "sp11-sensors RPM still carries sns_reg_version among the registry entries"
+fi
+if [ "$REDIST" = 1 ]; then
+  # Nothing of Microsoft's inside: the payload is directories only, for sp11-firmware-fetch to fill.
+  n=$(rpm -qplv "$RPM" | awk -v d="$SENSORS_PAYLOAD_DIR/" 'index($NF, d) == 1 && $1 !~ /^d/' | wc -l)
+  [ "$n" = 0 ] || die "the redistributable sp11-sensors RPM carries $n file(s) under $SENSORS_PAYLOAD_DIR"
+  rpm -qpl "$RPM" | grep -x "$SENSORS_PAYLOAD_DIR/sensors/registry" >/dev/null || die "sp11-sensors RPM lacks the empty registry directory"
+else
+  rpm -qpl "$RPM" | grep -x "$SENSORS_PAYLOAD_DIR/socinfo/hw_platform" >/dev/null || die "sp11-sensors RPM lacks the platform identity"
+fi
 log "sensors RPMs: $(basename "$RPM_HEX") $(basename "$RPM_SSC") $(basename "$RPM_ISP") $(basename "$RPM") ($(du -ch "$RPM_HEX" "$RPM_SSC" "$RPM_ISP" "$RPM" | tail -1 | cut -f1))"
 
 ## 6. Prove the four install into the live root and behave (dependencies, linkage, units, rules, policy module).
