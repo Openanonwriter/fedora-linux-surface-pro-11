@@ -38,17 +38,27 @@ FR="$WINDOWS_ROOT/Windows/System32/DriverStore/FileRepository"
 [ -d "$FR" ] || die "Windows DriverStore not found at $FR"
 SNSCFG=$(find "$FR" -maxdepth 1 -type d -name "$SENSORS_SNSCFG_GLOB" -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- || true)
 [ -n "$SNSCFG" ] || die "no $SENSORS_SNSCFG_GLOB package under $FR (the Windows sensor configuration)"
+# Without Windows there is no registry to export. The package then ships an empty registry directory: the
+# framework parses the configuration into it on the first attach (303 entries on an X1P64100 LCD, with Surface's
+# golden colour calibration and zero accelerometer and gyroscope bias, since the unit's factory values exist
+# only in its Windows). The directory has to exist: with none the framework reports
+# "Could not open /persist/sensors/registry/registry/" and no sensor comes up.
+NO_REGISTRY=0
+if [ "$(windows_source)" = msi ] && [ ! -s "$REG/sns_reg_config" ]; then
+  log "no Windows: empty sensor registry, generic calibration (the DSP builds the registry from the configuration)"
+  rm -rf "$REG"; mkdir -p "$REG"; NO_REGISTRY=1
+fi
 # What the sp11-sensors payload is built from: its files under payload/sensors/ (hexagonrpc's two files and the
 # unpackaged probe aside), the spec, this unit's registry export and the DriverStore package. Recorded in the RPM's
 # description; a same-version rebuild from other inputs is refused, because dnf would not install it.
 sensors_inputs() {
   local -a in=("$SPEC_DIR/sp11-sensors.spec.in" "$REG" "$SNSCFG")
   [ -d "$OVR" ] && in+=("$OVR")
-  printf '%s\n' "SENSORS_PAYLOAD_DIR=$SENSORS_PAYLOAD_DIR" "SNSCFG=$(basename "$SNSCFG")" \
+  printf '%s\n' "SENSORS_PAYLOAD_DIR=$SENSORS_PAYLOAD_DIR" "SNSCFG=$(basename "$SNSCFG")" "NO_REGISTRY=$NO_REGISTRY" \
     | inputs_sha256 "${in[@]}" $(find "$PAYLOAD_DIR/sensors" -maxdepth 1 -type f \
         ! -name hexagonrpc.sysusers.conf ! -name 60-hexagonrpc-fastrpc.rules ! -name sp11-sam-posture | sort)
 }
-INPUTS=""; [ -s "$REG/sns_reg_config" ] && INPUTS=$(sensors_inputs)
+INPUTS=""; { [ -s "$REG/sns_reg_config" ] || [ "$NO_REGISTRY" = 1 ]; } && INPUTS=$(sensors_inputs)
 recorded_inputs() { rpm -qp --qf '%{DESCRIPTION}' "$1" 2>/dev/null | sed -n 's/^Inputs: //p' | head -1 || true; }
 sensors_guard() {  # dies when the cached RPM of this version was built from other inputs, FORCE=1 or not
   local r rec; r=$(rpm_of sp11-sensors); have sp11-sensors "$EXPECT_SEN" || return 0
@@ -115,8 +125,11 @@ log "chain RPMs: $(basename "$RPM_HEX") $(basename "$RPM_SSC") $(basename "$RPM_
 ##    files) are converted to LF: Windows' copies carry CRLF, and the DSP kept the CR in the values it parsed, so
 ##    it asked hexagonrpcd for ".../registry\r/sns_secure_database.bin" and never found its registry (seen on the
 ##    tested unit, 2026-09-19; Windows' own file service evidently tolerated it, hexagonfs walks the name literally).
+if [ "$NO_REGISTRY" = 1 ]; then :
+else
 [ -s "$REG/sns_reg_config" ] && [ -s "$REG/sns_secure_database.bin" ] \
   || die "no exported sensor registry under $REG (run scripts/75-export-sensor-registry.sh, one UAC prompt); the chain RPMs above are kept"
+fi
 STAGE="$SDIR/stage"; rm -rf "$STAGE"; mkdir -p "$STAGE"
 P="$STAGE$SENSORS_PAYLOAD_DIR"
 install -d "$P/sensors/config" "$P/sensors/registry" "$P/socinfo"

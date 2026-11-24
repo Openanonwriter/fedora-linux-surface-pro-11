@@ -45,7 +45,13 @@ case " $(id -nG) " in
 esac
 
 FR="$WINDOWS_ROOT/Windows/System32/DriverStore/FileRepository"
-[ -d "$FR" ] || warn "Windows DriverStore not found at $FR; firmware extraction (scripts/30) will fail"
-command -v powershell.exe >/dev/null 2>&1 || warn "powershell.exe not reachable; hardware detection (scripts/05) needs WSL interop with Windows"
+if [ "$(windows_source)" = msi ]; then
+  log "no Windows DriverStore: firmware and sensor configuration come from Microsoft's driver package (step 10 downloads $MS_DRIVER_MSI)"
+  for t in msiinfo 7z; do command -v "$t" >/dev/null 2>&1 || as_root dnf install -y -q msitools 7zip; done
+else
+  [ -d "$FR" ] || warn "Windows DriverStore not found at $FR; firmware extraction (scripts/30) will fail"
+fi
+command -v powershell.exe >/dev/null 2>&1 \
+  || log "no powershell.exe: hardware detection (scripts/05) reads this machine's firmware tables instead of asking Windows"
 
 log "host ready: $(nproc) CPUs, ${free_gib} GiB free, gcc $(gcc -dumpversion), rpm $(rpm --version | awk '{print $3}')"

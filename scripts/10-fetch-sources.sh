@@ -132,4 +132,16 @@ verify_sha256 "$CACHE_DIR/$LIBDISPLAY_INFO_STOCK_RPM" "$LIBDISPLAY_INFO_STOCK_SH
 ## sp11.conf). Fetched on every host, with or without a signing key: the download is small and the pin is checked.
 fetch "$SECUREBOOT_STUB_SRPM_URL" "$CACHE_DIR/$SECUREBOOT_STUB_SRPM"
 verify_sha256 "$CACHE_DIR/$SECUREBOOT_STUB_SRPM" "$SECUREBOOT_STUB_SRPM_SHA256"
+## Without Windows: Microsoft's driver package, unpacked into the DriverStore layout steps 30 and 45 read
+## (sp11.conf, MS_DRIVER_MSI). 617 MB, so a build with Windows mounted does not download it.
+if [ "$(windows_source)" = msi ]; then
+  fetch "$MS_DRIVER_MSI_URL" "$CACHE_DIR/$MS_DRIVER_MSI"
+  verify_sha256 "$CACHE_DIR/$MS_DRIVER_MSI" "$MS_DRIVER_MSI_SHA256"
+  if [ "${FORCE:-0}" = 1 ] || [ "$(cat "$MSI_DRIVERSTORE/.source" 2>/dev/null)" != "$MS_DRIVER_MSI_SHA256" ]; then
+    log "unpacking $MS_DRIVER_MSI into $MSI_DRIVERSTORE"
+    mkdir -p "$MSI_DRIVERSTORE"
+    "$(dirname "$0")/msi-driverstore.py" "$CACHE_DIR/$MS_DRIVER_MSI" "$MSI_DRIVERSTORE" || die "cannot unpack $MS_DRIVER_MSI"
+    printf '%s\n' "$MS_DRIVER_MSI_SHA256" > "$MSI_DRIVERSTORE/.source"
+  fi
+fi
 log "all sources present under $CACHE_DIR"

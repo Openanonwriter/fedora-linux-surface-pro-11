@@ -1,0 +1,296 @@
+#!/usr/bin/python3 -I
+"""sp11-firmware-fetch: get the Surface Pro 11's device firmware without Windows.
+
+Downloads Microsoft's public "Surface Pro 11th Edition with Snapdragon" driver package (or takes a local copy),
+and installs from it what only Microsoft can supply:
+  * the audio/sensor DSP firmware (qcadsp8380.mbn, adsp_dtb.mbn), signed by Microsoft
+  * the sensor configuration (JSON files, file list, registry settings, platform identity), with an empty
+    registry directory for the sensor framework to build its registry in
+It also sets the Bluetooth address from the firmware when none is set.
+The Qualcomm-signed files (video codec, GPU zap shader, compute DSP) are taken from Fedora's qcom-firmware
+package, unless --all-from-microsoft is given.
+
+Nothing is redistributed: the package is downloaded from Microsoft onto this machine, under Microsoft's terms.
+
+Needs: msiinfo (package msitools) and 7z (package 7zip). Run as root unless --root points somewhere writable.
+"""
+import argparse, hashlib, lzma, os, re, shutil, subprocess, sys, tempfile, urllib.request
+
+PAGE = 'https://www.microsoft.com/en-us/download/details.aspx?id=106119'
+URL_RE = re.compile(r'https://download\.microsoft\.com/download/[0-9A-Za-z/_.-]+?/SurfacePro11_ARM_[0-9A-Za-z_.]+\.msi')
+KNOWN_MSI = {  # sha256 of packages this tool was tested with
+    '8b299016027a4a87f50cf168f69ca1fb8dedc9a0612fcd6cff89b9bc64135ec2': 'SurfacePro11_ARM_Win11_26100_26.094.41119.0.msi',
+}
+FW_DIR = 'usr/lib/firmware/qcom/x1e80100/microsoft/Denali'
+QFW = 'usr/lib/firmware/qcom/x1e80100'
+# name in the package -> name the device tree asks for. These two exist only in Microsoft's package.
+MS_ONLY = {'qcadsp8380.mbn': 'qcadsp8380.mbn', 'adsp_dtbs.elf': 'adsp_dtb.mbn'}
+# Qualcomm-signed: name in Microsoft's package, name wanted, the copy in Fedora's qcom-firmware
+GENERIC = [('qccdsp8380.mbn', 'qccdsp8380.mbn', 'dell/xps13-9345/qccdsp8380.mbn.xz'),
+           ('cdsp_dtbs.elf', 'cdsp_dtb.mbn', 'dell/xps13-9345/cdsp_dtbs.elf.xz'),
+           ('qcdxkmsuc8380.mbn', 'qcdxkmsuc8380.mbn', 'dell/xps13-9345/qcdxkmsuc8380.mbn.xz'),
+           ('qcvss8380.mbn', 'qcvss8380.mbn', 'LENOVO/21N1/qcvss8380.mbn.xz')]
+SENSOR_MARKER = 'sns_surface_color.json'           # identifies the sensor configuration folder of the package
+SOCINFO = ['hw_platform', 'soc_id', 'revision', 'platform_version', 'platform_subtype', 'platform_subtype_id']
+
+
+def log(*a): print('sp11-firmware-fetch:', *a, flush=True)
+def die(msg): sys.exit('sp11-firmware-fetch: error: ' + msg)
+
+
+def sha256(path):
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for b in iter(lambda: f.read(1 << 20), b''):
+            h.update(b)
+    return h.hexdigest()
+
+
+def find_url():
+    req = urllib.request.Request(PAGE, headers={'User-Agent': 'sp11-firmware-fetch'})
+    html = urllib.request.urlopen(req, timeout=60).read().decode('utf-8', 'replace')
+    urls = sorted(set(URL_RE.findall(html)))
+    if not urls:
+        die('no SurfacePro11_ARM .msi link found on Microsoft\'s download page; download it by hand and use --msi')
+    return urls[-1]
+
+
+def download(url, dest):
+    if not url.startswith('https://download.microsoft.com/'):
+        die('refusing to download from ' + url)
+    log('downloading', url)
+    req = urllib.request.Request(url, headers={'User-Agent': 'sp11-firmware-fetch'})
+    with urllib.request.urlopen(req, timeout=120) as r, open(dest, 'wb') as f:
+        total = int(r.headers.get('Content-Length', 0)); done = 0; last = -1
+        for b in iter(lambda: r.read(1 << 20), b''):
+            f.write(b); done += len(b)
+            pct = done * 100 // total if total else 0
+            if pct // 10 != last:
+                last = pct // 10; log(f'  {done >> 20} MiB' + (f' of {total >> 20} ({pct}%)' if total else ''))
+        if total and done != total:
+            die(f'download incomplete: {done} of {total} bytes')
+
+
+def table(msi, name):
+    out = subprocess.run(['msiinfo', 'export', msi, name], capture_output=True, check=True).stdout.decode('latin-1')
+    return [l.rstrip('\r').split('\t') for l in out.split('\n')[3:] if l.strip()]
+
+
+def index(msi):
+    """{lower-case file name: [(msi stream id, size, folder path)]} from the package's own tables."""
+    comp = {r[0]: r[2] for r in table(msi, 'Component')}
+    dirs = {r[0]: (r[1], r[2].split('|')[-1]) for r in table(msi, 'Directory')}
+
+    def path(d):
+        parts = []
+        while d in dirs:
+            parent, name = dirs[d]; parts.append(name)
+            if parent == d or not parent: break
+            d = parent
+        return '/'.join(reversed(parts))
+
+    idx = {}
+    for r in table(msi, 'File'):
+        name = r[2].split('|')[-1]
+        idx.setdefault(name.lower(), []).append((r[0], int(r[3]), path(comp.get(r[1], '')), name))
+    return idx
+
+
+def extract(msi, ids, workdir):
+    subprocess.run(['7z', 'e', '-y', '-o' + workdir, msi] + ids, stdout=subprocess.DEVNULL, check=True)
+
+
+def one(idx, name):
+    hits = idx.get(name.lower(), [])
+    if len(hits) != 1:
+        die(f'expected exactly one {name} in the package, found {len(hits)}')
+    return hits[0]
+
+
+def install(src, dst, mode=0o644):
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    tmp = dst + '.tmp'
+    shutil.copyfile(src, tmp); os.chmod(tmp, mode); os.replace(tmp, dst)
+
+
+def payload_dir_for_this_machine(root):
+    """The directory hexagonrpcd serves, which follows the device tree's model (sp11.conf, SENSORS_PAYLOAD_DIR_*)."""
+    try:
+        compat = open('/proc/device-tree/compatible', 'rb').read().split(b'\0')
+    except OSError:
+        compat = []
+    if b'microsoft,denali-lcd' in compat: return '/usr/share/qcom/x1e80100/Microsoft/denali-lcd'
+    if b'microsoft,denali' in compat: return '/usr/share/qcom/x1e80100/Microsoft/denali-oled'
+    die('this does not look like a Surface Pro 11 (device tree); give --payload-dir')
+
+
+def bluetooth_address_from_firmware():
+    """Seen on a Surface Pro 11 LCD: the Bluetooth address is MacAddressEmulationAddress minus 1."""
+    import glob
+    for f in glob.glob('/sys/firmware/efi/efivars/MacAddressEmulationAddress-*'):
+        try:
+            v = open(f, 'rb').read()
+        except OSError:
+            continue
+        if len(v) == 10 and any(v[4:]):
+            n = int.from_bytes(v[4:], 'big') - 1
+            return ':'.join('%02X' % b for b in n.to_bytes(6, 'big'))
+    return None
+
+
+def is_elf(path):
+    with open(path, 'rb') as f:
+        return f.read(4) == b'\x7fELF'
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('--msi', help='use this already downloaded package instead of downloading')
+    ap.add_argument('--keep', metavar='DIR', help='keep the downloaded package in DIR')
+    ap.add_argument('--root', default='/', help='install below this directory (default /)')
+    ap.add_argument('--payload-dir', help='sensor payload directory (default: by this machine\'s device tree, '
+                    '/usr/share/qcom/x1e80100/Microsoft/denali-lcd or denali-oled)')
+    ap.add_argument('--no-bluetooth', action='store_true', help='do not set the Bluetooth address from the firmware')
+    ap.add_argument('--all-from-microsoft', action='store_true',
+                    help='take the Qualcomm-signed files from Microsoft\'s package too, not from qcom-firmware')
+    ap.add_argument('--force', action='store_true', help='overwrite sensor configuration files that already exist')
+    ap.add_argument('--no-firmware', action='store_true'); ap.add_argument('--no-sensors', action='store_true')
+    ap.add_argument('--no-initramfs', action='store_true', help='do not rebuild the initramfs afterwards')
+    ap.add_argument('--print-url', action='store_true', help='only print the package\'s current download link')
+    a = ap.parse_args()
+
+    if a.print_url:
+        print(find_url()); return
+    for tool in ('msiinfo', '7z'):
+        if not shutil.which(tool):
+            die(f'{tool} not found (dnf install msitools 7zip)')
+    root = os.path.abspath(a.root)
+    try:
+        os.makedirs(root, exist_ok=True)
+    except OSError:
+        pass
+    if not os.access(root, os.W_OK):
+        die(f'cannot write below {root} (run as root, or use --root)')
+
+    with tempfile.TemporaryDirectory(prefix='sp11-fw-', dir=a.keep or None) as work:
+        msi = a.msi
+        if not msi:
+            url = find_url()
+            msi = os.path.join(a.keep or work, os.path.basename(url))
+            if not os.path.exists(msi):
+                download(url, msi)
+        digest = sha256(msi)
+        if digest in KNOWN_MSI:
+            log('package is a tested version:', KNOWN_MSI[digest])
+        else:
+            log('note: this package version has not been tested with this tool (sha256 %s...)' % digest[:16])
+        idx = index(msi)
+        changed = []
+
+        if not a.no_firmware:
+            jobs = dict(MS_ONLY)
+            fedora = []
+            for ms_name, want, fed in GENERIC:
+                if a.all_from_microsoft: jobs[ms_name] = want
+                else: fedora.append((want, fed))
+            picks = {n: one(idx, n) for n in jobs}
+            extract(msi, [p[0] for p in picks.values()], work)
+            for ms_name, want in jobs.items():
+                sid, size, folder, _ = picks[ms_name]
+                src = os.path.join(work, sid)
+                if os.path.getsize(src) != size: die(f'{ms_name}: extracted size differs from the package table')
+                if not is_elf(src): die(f'{ms_name} is not a firmware image')
+                dst = os.path.join(root, FW_DIR, want); install(src, dst); changed.append(dst)
+                log(f'firmware {want:20s} <- Microsoft ({folder.split("/")[-1]}/{ms_name}, sha256 {sha256(dst)[:12]}...)')
+            for want, fed in fedora:
+                src = os.path.join('/', QFW, fed)
+                if not os.path.exists(src): die(f'{src} missing: install qcom-firmware, or use --all-from-microsoft')
+                tmp = os.path.join(work, 'fed-' + want)
+                with lzma.open(src) as i, open(tmp, 'wb') as o: shutil.copyfileobj(i, o)
+                if not is_elf(tmp): die(f'{fed} is not a firmware image')
+                dst = os.path.join(root, FW_DIR, want); install(tmp, dst); changed.append(dst)
+                log(f'firmware {want:20s} <- Fedora qcom-firmware ({fed}, sha256 {sha256(dst)[:12]}...)')
+
+        if not a.no_sensors:
+            pdir = a.payload_dir or payload_dir_for_this_machine(root)
+            P = os.path.join(root, pdir.lstrip('/'))
+            folder = one(idx, SENSOR_MARKER)[2]
+            pkg = {h[3]: h for hits in idx.values() for h in hits if h[2] == folder}   # name -> entry
+            lower = {n.lower(): n for n in pkg}
+            for need in ['json.lst', 'sns_reg_config'] + SOCINFO:
+                if need not in lower: die(f'the sensor package lacks {need}')
+            extract(msi, [h[0] for h in pkg.values()], work)
+
+            def src(name):
+                h = pkg[lower[name.lower()]]; f = os.path.join(work, h[0])
+                if os.path.getsize(f) != h[1]: die(f'{name}: extracted size differs from the package table')
+                return f
+
+            def put(name, dst, lf=False):
+                """Install one file; LF-convert the control files the framework parses for paths and values
+                (it keeps a CR in what it reads and then asks for names ending in it). Keeps the package's
+                modification time, which the framework records per parsed file."""
+                if os.path.exists(dst) and not a.force:
+                    return False
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                data = open(src(name), 'rb').read()
+                if lf: data = data.replace(b'\r', b'')
+                tmp = dst + '.tmp'
+                with open(tmp, 'wb') as f: f.write(data)
+                os.chmod(tmp, 0o644); st = os.stat(src(name)); os.utime(tmp, (st.st_atime, st.st_mtime))
+                os.replace(tmp, dst); changed.append(dst); return True
+
+            new = kept = 0
+            names = sorted(n for n in pkg if n.lower().endswith('.json')) + ['golden_color_calibration.bin']
+            listed = set(open(src('json.lst'), 'rb').read().replace(b'\r', b'').decode().split())
+            missing = [n for n in listed if n.lower() not in lower]
+            if missing: die('json.lst names files the package lacks: ' + ' '.join(missing))
+            for n in names:
+                if n.lower() not in lower: continue
+                if put(n, os.path.join(P, 'sensors/config', n)): new += 1
+                else: kept += 1
+            for n, dst, in (('json.lst', 'sensors/config/json.lst'), ('sns_reg_config', 'sensors/sns_reg.conf')):
+                if put(n, os.path.join(P, dst), lf=True): new += 1
+                else: kept += 1
+            for n in SOCINFO:
+                if put(n, os.path.join(P, 'socinfo', n), lf=True): new += 1
+                else: kept += 1
+            conf = open(os.path.join(P, 'sensors/sns_reg.conf')).read()
+            for key in ('input=json.lst', 'output=/persist/sensors/registry/registry', 'config=/vendor/etc/sensors/config'):
+                if 'file=' + key not in conf: die('sns_reg.conf lacks file=' + key)
+            # The framework parses the configuration into its registry on the first attach, but only into a
+            # directory that exists; tmpfiles copies this (empty) one to where the daemon serves it.
+            os.makedirs(os.path.join(P, 'sensors/registry'), exist_ok=True)
+            log(f'sensor payload: {new} file(s) installed, {kept} existing kept, in {pdir}')
+            if root == '/' and os.path.exists('/usr/lib/tmpfiles.d/sp11-sensors.conf'):
+                subprocess.run(['systemd-tmpfiles', '--create', '/usr/lib/tmpfiles.d/sp11-sensors.conf'], check=False)
+
+        if not a.no_bluetooth:
+            bt = os.path.join(root, 'etc/sp11/bluetooth-address')
+            if os.path.exists(bt) and not a.force:
+                log('Bluetooth address: already set, kept')
+            else:
+                addr = bluetooth_address_from_firmware()
+                if addr:
+                    os.makedirs(os.path.dirname(bt), exist_ok=True)
+                    with open(bt + '.tmp', 'w') as f:
+                        f.write('# Bluetooth public address of this Surface Pro 11 (from the UEFI variable\n'
+                                '# MacAddressEmulationAddress, minus 1)\nSP11_BT_MAC="%s"\n' % addr)
+                    os.chmod(bt + '.tmp', 0o600); os.replace(bt + '.tmp', bt); changed.append(bt)
+                    log('Bluetooth address: set from the firmware (ends %s)' % addr[-5:])
+                else:
+                    log('Bluetooth address: no MacAddressEmulationAddress variable; not set')
+
+    if root == '/' and changed:
+        if shutil.which('restorecon'):
+            subprocess.run(['restorecon'] + changed, check=False)
+        if not a.no_initramfs and not a.no_firmware:
+            log('rebuilding the initramfs (the DSPs load their firmware from it)')
+            subprocess.run(['dracut', '-f', '--kver', os.uname().release], check=True)
+        log('done. Reboot to start the DSPs with the new firmware.')
+    else:
+        log('done.')
+
+
+if __name__ == '__main__':
+    main()

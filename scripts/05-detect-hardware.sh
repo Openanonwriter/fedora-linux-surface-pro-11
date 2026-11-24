@@ -1,5 +1,6 @@
 #!/usr/bin/bash
-# Step 1: read this machine's identity from Windows (WSL interop) and validate it against the build's regexes.
+# Step 1: read this machine's identity from Windows (WSL interop), or from the firmware when the build runs on the
+# Surface under Linux, and validate it against the build's regexes.
 # Output: build/hardware.env. Re-run with FORCE=1 to re-detect.
 . "$(dirname "$0")/lib.sh"
 
@@ -70,9 +71,46 @@ if [ -f "$HARDWARE_ENV" ] && [ "${FORCE:-0}" != 1 ]; then
   exit 0
 fi
 
-command -v powershell.exe >/dev/null 2>&1 \
-  || die "powershell.exe unavailable; run this step inside WSL with Windows interop enabled."
+# Without Windows (the build running on the Surface under Linux): the same identity from the firmware's SMBIOS
+# tables, the built-in panel's EDID and, for the Bluetooth address, a UEFI variable.
+#  - SMBIOS: /sys/class/dmi/id carries the strings Win32_ComputerSystem and Win32_BaseBoard return.
+#  - SoC: the SMBIOS processor version (dmidecode, as root) or the running device tree's compatible.
+#  - Panel: the PNP vendor ID in bytes 8-9 of the eDP connector's EDID (what WmiMonitorID decodes).
+#  - Bluetooth: MacAddressEmulationAddress holds the address after the radio's (seen on one LCD unit: the
+#    Bluetooth address is that value minus 1); an existing /etc/sp11/bluetooth-address or SP11_BT_MAC wins.
+detect_linux() {
+  local d=/sys/class/dmi/id e v
+  [ -r "$d/product_sku" ] || die "no SMBIOS in $d; run this step on the Surface (Linux or WSL), or write $HARDWARE_ENV by hand"
+  log "reading SMBIOS, panel and Bluetooth identity from this machine (no Windows)"
+  SP11_PRODUCT=$(cat "$d/product_name"); SP11_SKU=$(cat "$d/product_sku"); SP11_FAMILY=$(cat "$d/product_family")
+  SP11_BOARD_VENDOR=$(cat "$d/board_vendor"); SP11_BOARD_NAME=$(cat "$d/board_name"); SP11_BIOS=$(cat "$d/bios_version")
+  SP11_CPU=$(as_root dmidecode -s processor-version 2>/dev/null | head -1 || true)
+  if [ -z "$SP11_CPU" ] && [ -r /proc/device-tree/compatible ]; then
+    case "$(tr '\0' ' ' < /proc/device-tree/compatible)" in
+      *qcom,x1p64100*) SP11_CPU="Snapdragon X Plus - X1P64100" ;;
+      *qcom,x1e80100*) SP11_CPU="Snapdragon X Elite - X1E80100" ;;
+    esac
+  fi
+  SP11_PANEL_VENDOR=""; PANELS="(EDID of the eDP connector)"
+  for e in /sys/class/drm/card*-eDP-*/edid; do
+    [ "$(od -An -tu1 -N1 "$e" 2>/dev/null | tr -d ' ')" = 0 ] || continue   # sysfs reports size 0; an EDID starts with 00
+    v=$(od -An -tu1 -j8 -N2 "$e" | awk '{ n = $1 * 256 + $2; printf "%c%c%c", int(n / 1024) % 32 + 64, int(n / 32) % 32 + 64, n % 32 + 64 }')
+    SP11_PANEL_VENDOR=$v; break
+  done
+  if [ -z "$SP11_BT_MAC" ] && [ -e /etc/sp11/bluetooth-address ]; then
+    SP11_BT_MAC=$(as_root sed -n 's/^SP11_BT_MAC="\{0,1\}\([0-9A-Fa-f:]\{17\}\).*/\1/p' /etc/sp11/bluetooth-address | head -1)
+  fi
+  if [ -z "$SP11_BT_MAC" ]; then
+    e=$(ls /sys/firmware/efi/efivars/MacAddressEmulationAddress-* 2>/dev/null | head -1 || true)
+    if [ -n "$e" ] && [ "$(stat -c %s "$e")" = 10 ]; then
+      v=$(od -An -tx1 -j4 -N6 "$e" | tr -d ' \n')
+      SP11_BT_MAC=$(printf '%012X' $(( 0x$v - 1 )) | sed 's/../&:/g; s/:$//')
+      warn "Bluetooth address derived from the UEFI variable MacAddressEmulationAddress (value minus 1); check it against the unit's label or Windows if you can"
+    fi
+  fi
+}
 
+if command -v powershell.exe >/dev/null 2>&1; then
 log "querying Windows for SMBIOS, panel and Bluetooth identity"
 SP11_PRODUCT=$(ps_query '(Get-CimInstance Win32_ComputerSystem).Model')
 SP11_SKU=$(ps_query '(Get-CimInstance Win32_ComputerSystem).SystemSKUNumber')
@@ -95,6 +133,9 @@ if [ -z "$SP11_BT_MAC" ]; then
     warn "no built-in Bluetooth radio found via PnP (radios: ${RADIOS:-none}); falling back to the PAN adapter"
     SP11_BT_MAC=$(ps_query '(Get-NetAdapter | Where-Object { $_.InterfaceDescription -match "Bluetooth Device \(Personal Area Network\)" } | Select-Object -First 1).MacAddress')
   fi
+fi
+else
+  detect_linux
 fi
 SP11_BT_MAC=$(printf '%s' "$SP11_BT_MAC" | tr 'a-f-' 'A-F:')
 SP11_UCM_DMI_INFO="${SP11_BOARD_VENDOR}-${SP11_FAMILY}-${SP11_BOARD_NAME}"

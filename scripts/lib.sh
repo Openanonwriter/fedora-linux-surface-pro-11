@@ -14,6 +14,11 @@ WORK_DIR="$BUILD_DIR/work"
 RPM_DIR="$BUILD_DIR/rpms"
 OUT_DIR="$BUILD_DIR/out"
 HARDWARE_ENV="$BUILD_DIR/hardware.env"
+# The DriverStore the firmware and sensor steps read: an installed Windows (WSL: /mnt/c), or Microsoft's driver
+# package unpacked by step 10 (sp11.conf, MS_DRIVER_MSI). windows_source says which, for messages and inputs.
+MSI_DRIVERSTORE="$BUILD_DIR/msi-driverstore"
+if [ ! -d "$WINDOWS_ROOT/Windows/System32/DriverStore/FileRepository" ]; then WINDOWS_ROOT="$MSI_DRIVERSTORE"; fi
+windows_source() { if [ "$WINDOWS_ROOT" = "$MSI_DRIVERSTORE" ]; then echo msi; else echo windows; fi; }
 PAYLOAD_DIR="$SP11_ROOT/payload"
 SPEC_DIR="$SP11_ROOT/rpm"
 # The SP11 patch set: the kernel fork, the submodule linux-sp11. The pinned head is the gitlink in the index (what a
