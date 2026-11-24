@@ -231,7 +231,11 @@ as_root chroot "$ROOTFS" /usr/bin/getent passwd fastrpc >/dev/null || die "no fa
 as_root chroot "$ROOTFS" /usr/sbin/semodule -i /usr/share/selinux/packages/sp11-sensors.cil || die "semodule -i sp11-sensors.cil failed in the live root"
 as_root chroot "$ROOTFS" /usr/sbin/semodule -l | grep -x sp11-sensors >/dev/null || die "sp11-sensors is not in the live root's policy store"
 as_root chroot "$ROOTFS" /usr/bin/systemd-tmpfiles --create /usr/lib/tmpfiles.d/sp11-sensors.conf || die "systemd-tmpfiles failed for sp11-sensors.conf"
-[ "$(as_root chroot "$ROOTFS" /usr/bin/stat -c %U /var/lib/sp11/hexagonrpc/sensors/persist/registry/sns_reg_config 2>/dev/null)" = fastrpc ] \
+# A redistributable image has an empty registry directory (sp11-firmware-fetch brings the configuration, the
+# sensor framework builds the registry into it); a per-unit image the unit's registry.
+REG_PROBE=/var/lib/sp11/hexagonrpc/sensors/persist/registry/sns_reg_config
+[ "$SP11_REDISTRIBUTABLE" != 1 ] || REG_PROBE=/var/lib/sp11/hexagonrpc/sensors/persist/registry
+[ "$(as_root chroot "$ROOTFS" /usr/bin/stat -c %U "$REG_PROBE" 2>/dev/null)" = fastrpc ] \
   || die "the registry copy under /var/lib/sp11/hexagonrpc is missing or not owned by fastrpc"
 [ -e "$ROOTFS/usr/lib/dracut/modules.d/95sp11-sensors" ] && die "a sensors dracut module is in the live root (sp11-sensors older than 1.3?)"
 # The support RPM's %post, skipped by --noscripts: the policy module that lets GeoClue connect to the 5G modem's GNSS
@@ -253,7 +257,7 @@ as_root install -m 0644 -o "$(id -u)" -g "$(id -g)" "$ROOTFS/boot/initramfs-$KER
 lsinitrd -m "$W/initrd" | grep -x dmsquash-live >/dev/null || die "initramfs lacks dmsquash-live"
 lsinitrd "$W/initrd" | grep "usr/lib/modules/$KERNEL_ABI/kernel/fs/erofs/erofs.ko" >/dev/null || die "initramfs lacks the erofs module for $KERNEL_ABI"
 lsinitrd "$W/initrd" | grep -F "${ZAP_FW#/}" >/dev/null || die "live initramfs lacks the GPU zap shader"
-lsinitrd "$W/initrd" | grep -F 'Denali/qcadsp8380.mbn' >/dev/null || die "live initramfs lacks the ADSP firmware"
+[ "$SP11_REDISTRIBUTABLE" = 1 ] || lsinitrd "$W/initrd" | grep -F 'Denali/qcadsp8380.mbn' >/dev/null || die "live initramfs lacks the ADSP firmware"
 lsinitrd "$W/initrd" | grep -E 'hooks/pre-udev/[0-9]+-qcom-adsp-pre-udev\.sh$' >/dev/null || die "live initramfs lacks the qcom-adsp hook"
 lsinitrd "$W/initrd" | grep -E 'sp11-sensors|hexagonrpc' >/dev/null && die "live initramfs carries files of the sensors stack"
 as_root rm -f "$ROOTFS/boot/initramfs-$KERNEL_ABI.img"

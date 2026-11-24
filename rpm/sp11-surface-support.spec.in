@@ -30,9 +30,10 @@ Requires:       util-linux
 Requires:       kmod
 # sp11-secureboot-theme, which draws the menu shown while Secure Boot is on, is Python; so is the modem's GNSS feed.
 Requires:       python3
-# sp11-firmware-fetch unpacks Microsoft's driver package with these.
-Requires:       msitools
-Requires:       7zip
+# sp11-firmware-fetch unpacks Microsoft's driver package with these and installs them itself when they are
+# missing (it needs the network anyway); a hard dependency would have to be carried into the live image.
+Recommends:     msitools
+Recommends:     7zip
 %if %{sp11_modem}
 # The 5G modem's GNSS feed: GeoClue reads it, semodule loads its policy module.
 Requires:       geoclue2

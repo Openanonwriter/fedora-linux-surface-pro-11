@@ -161,9 +161,12 @@ def main():
 
     if a.print_url:
         print(find_url()); return
-    for tool in ('msiinfo', '7z'):
-        if not shutil.which(tool):
-            die(f'{tool} not found (dnf install msitools 7zip)')
+    missing = [pkg for tool, pkg in (('msiinfo', 'msitools'), ('7z', '7zip')) if not shutil.which(tool)]
+    if missing:
+        if os.geteuid() != 0 or not shutil.which('dnf'):
+            die('missing ' + ' and '.join(missing) + ' (dnf install msitools 7zip)')
+        log('installing', ' '.join(missing))
+        subprocess.run(['dnf', 'install', '-y', '-q'] + missing, check=True)
     root = os.path.abspath(a.root)
     try:
         os.makedirs(root, exist_ok=True)
