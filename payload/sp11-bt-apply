@@ -2,5 +2,15 @@
 # sp11-bluetooth-address@hciN.service: give controller N the public address from /etc/sp11/bluetooth-address
 # (raw HCI management, no btmgmt). The helper validates both arguments.
 set -eu
+# No address file (an image built without Microsoft's or the unit's data, before sp11-firmware-fetch ran): take
+# the address from the firmware. The UEFI variable MacAddressEmulationAddress holds the address after the radio's
+# (seen on an X1P64100 LCD: Bluetooth address = that value minus 1). Without the variable there is nothing to set.
+if [ ! -s /etc/sp11/bluetooth-address ]; then
+  v=$(ls /sys/firmware/efi/efivars/MacAddressEmulationAddress-* 2>/dev/null | head -1 || true)
+  [ -n "$v" ] && [ "$(stat -c %s "$v")" = 10 ] \
+    || { echo "no Bluetooth address: /etc/sp11/bluetooth-address and MacAddressEmulationAddress both missing" >&2; exit 0; }
+  SP11_BT_MAC=$(printf '%012X' $(( 0x$(od -An -tx1 -j4 -N6 "$v" | tr -d ' \n') - 1 )) | sed 's/../&:/g; s/:$//')
+  exec /usr/libexec/sp11/sp11-bt-set-addr "${1#hci}" "$SP11_BT_MAC"
+fi
 . /etc/sp11/bluetooth-address
 exec /usr/libexec/sp11/sp11-bt-set-addr "${1#hci}" "$SP11_BT_MAC"

@@ -26,6 +26,7 @@ support_inputs() {
     "SECUREBOOT_ESP_DIR=$SECUREBOOT_ESP_DIR" \
     "QCOM_FIRMWARE_LCD_ZAP_MEMBER=$QCOM_FIRMWARE_LCD_ZAP_MEMBER" "QCOM_FIRMWARE_LCD_ZAP_SHA256=$QCOM_FIRMWARE_LCD_ZAP_SHA256" \
     "QCOM_FIRMWARE_LCD_VIDEO_MEMBER=$QCOM_FIRMWARE_LCD_VIDEO_MEMBER" "QCOM_FIRMWARE_LCD_VIDEO_SHA256=$QCOM_FIRMWARE_LCD_VIDEO_SHA256" \
+    "SP11_REDISTRIBUTABLE=$SP11_REDISTRIBUTABLE" "QCOM_FIRMWARE_CDSP_SHA256=$QCOM_FIRMWARE_CDSP_SHA256" "QCOM_FIRMWARE_CDSP_DTB_SHA256=$QCOM_FIRMWARE_CDSP_DTB_SHA256" \
     | inputs_sha256 "$SPEC_DIR/sp11-surface-support.spec.in" "$FONT_CELL" \
         $(find "$PAYLOAD_DIR" -maxdepth 1 -type f ! -name '*.in' ! -name "$KERNEL_CONFIG_FRAGMENT" | sort)
 }
@@ -58,7 +59,7 @@ rm -rf "$STAGE"; mkdir -p "$STAGE"
 ##    on it (-EINVAL). An LCD build therefore takes the 8380 GPU shader and video codec firmware from Fedora's
 ##    qcom-firmware when Windows has none (both are signed by Qualcomm only).
 FR="$WINDOWS_ROOT/Windows/System32/DriverStore/FileRepository"
-[ -d "$FR" ] || die "Windows DriverStore not found at $FR (is Windows mounted at $WINDOWS_ROOT?)"
+[ -d "$FR" ] || [ "$SP11_REDISTRIBUTABLE" = 1 ] || die "Windows DriverStore not found at $FR (is Windows mounted at $WINDOWS_ROOT?)"
 FWD="$STAGE/usr/lib/firmware/qcom/x1e80100/microsoft/Denali"; install -d "$FWD"
 FW_PAIRS=(qcadsp8380.mbn:qcadsp8380.mbn adsp_dtbs.elf:adsp_dtb.mbn qccdsp8380.mbn:qccdsp8380.mbn \
           cdsp_dtbs.elf:cdsp_dtb.mbn qcdxkmsuc8380.mbn:qcdxkmsuc8380.mbn)
@@ -74,6 +75,18 @@ install_from_qcom_firmware() {  # install_from_qcom_firmware DEST-NAME MEMBER SH
 }
 for pair in "${FW_PAIRS[@]}"; do
   win=${pair%%:*}; dt=${pair#*:}
+  if [ "$SP11_REDISTRIBUTABLE" = 1 ]; then
+    # Nothing from Microsoft: the Qualcomm-signed images from qcom-firmware; the ADSP pair is left to
+    # sp11-firmware-fetch on the installed system.
+    case "$dt" in
+      qcdxkmsuc8380.mbn) install_from_qcom_firmware "$dt" "$QCOM_FIRMWARE_LCD_ZAP_MEMBER" "$QCOM_FIRMWARE_LCD_ZAP_SHA256" ;;
+      qcvss8380.mbn) install_from_qcom_firmware "$dt" "$QCOM_FIRMWARE_LCD_VIDEO_MEMBER" "$QCOM_FIRMWARE_LCD_VIDEO_SHA256" ;;
+      qccdsp8380.mbn) install_from_qcom_firmware "$dt" "$QCOM_FIRMWARE_CDSP_MEMBER" "$QCOM_FIRMWARE_CDSP_SHA256" ;;
+      cdsp_dtb.mbn) install_from_qcom_firmware "$dt" "$QCOM_FIRMWARE_CDSP_DTB_MEMBER" "$QCOM_FIRMWARE_CDSP_DTB_SHA256" ;;
+      *) log "firmware $dt: not shipped (Microsoft's; sp11-firmware-fetch installs it)" ;;
+    esac
+    continue
+  fi
   src=$(find "$FR" -maxdepth 2 -type f -iname "$win" -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- || true)
   if [ -z "$src" ]; then
     if [ "$SP11_VARIANT" = lcd ]; then
@@ -157,8 +170,13 @@ install -m 0755 "$PAYLOAD_DIR/sp11-bt-apply" "$STAGE/usr/libexec/sp11/sp11-bt-ap
 install -D -m 0644 "$PAYLOAD_DIR/sp11-bluetooth-address@.service" "$STAGE/usr/lib/systemd/system/sp11-bluetooth-address@.service"
 install -D -m 0644 "$PAYLOAD_DIR/99-sp11-bluetooth-address.rules" "$STAGE/usr/lib/udev/rules.d/99-sp11-bluetooth-address.rules"
 install -d -m 0755 "$STAGE/etc/sp11"
-printf '# Bluetooth public address of this Surface Pro 11 (from Windows)\nSP11_BT_MAC="%s"\n' "$SP11_BT_MAC" > "$STAGE/etc/sp11/bluetooth-address"
-chmod 0600 "$STAGE/etc/sp11/bluetooth-address"
+if [ "$SP11_REDISTRIBUTABLE" != 1 ]; then
+  printf '# Bluetooth public address of this Surface Pro 11 (from Windows)\nSP11_BT_MAC="%s"\n' "$SP11_BT_MAC" > "$STAGE/etc/sp11/bluetooth-address"
+  chmod 0600 "$STAGE/etc/sp11/bluetooth-address"
+fi
+install -m 0755 "$PAYLOAD_DIR/sp11-firmware-fetch" "$STAGE/usr/libexec/sp11/sp11-firmware-fetch"
+python3 -I -c 'import ast, sys; ast.parse(open(sys.argv[1]).read())' "$STAGE/usr/libexec/sp11/sp11-firmware-fetch" \
+  || die "sp11-firmware-fetch does not parse"
 
 ## 5. GRUB console font: gfxterm draws with a fixed-size PF2, and Fedora's stock unicode.pf2 (8x16 ASCII
 ##    cell) is unreadable on the 2880x1920 panel. A large font is what lets GRUB run at the native mode.
@@ -264,7 +282,7 @@ fi
 log "building sp11-surface-support RPM"
 RPM=$(build_rpm "$SPEC_DIR/sp11-surface-support.spec.in" sp11-surface-support "$SDIR" \
   STAGE="$STAGE" VERSION="$VERSION" SKU="$SP11_SKU" VARIANT="$(variant_label)" AUDIO_TAG="$AUDIO_RELEASE_TAG" \
-  INPUTS="$INPUTS" MODEM="$MODEM")
+  INPUTS="$INPUTS" MODEM="$MODEM" REDIST="$SP11_REDISTRIBUTABLE")
 rpm -qpl "$RPM" | grep -x "/usr/lib/firmware/qcom/x1e80100/microsoft/Denali/qcdxkmsuc8380.mbn" >/dev/null || die "RPM lacks GPU zap firmware"
 rpm -qpl "$RPM" | grep -x "/usr/lib/firmware/qcom/x1e80100/microsoft/Denali/qcvss8380.mbn" >/dev/null || die "RPM lacks video codec firmware"
 ! rpm -qpl "$RPM" | grep -x "/usr/lib/firmware/qcom/x1e80100/microsoft/Denali/qcdxkmsucpurwa.mbn" >/dev/null \

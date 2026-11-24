@@ -35,8 +35,13 @@ chain_current() { have hexagonrpc "$EXPECT_HEX" && have libssc "$EXPECT_SSC" && 
 
 SDIR="$BUILD_DIR/sensors"; REG="$SDIR/registry"; OVR="$SDIR/config-overrides"; SRC="$SDIR/SOURCES"
 FR="$WINDOWS_ROOT/Windows/System32/DriverStore/FileRepository"
-[ -d "$FR" ] || die "Windows DriverStore not found at $FR"
+# SP11_REDISTRIBUTABLE=1: the package carries no Microsoft file. The payload directories stay empty and
+# sp11-firmware-fetch fills them on the installed system from Microsoft's driver package, the way section 3 below
+# does at build time (same files, same LF conversion, an empty registry).
+REDIST=$SP11_REDISTRIBUTABLE
+[ -d "$FR" ] || [ "$REDIST" = 1 ] || die "Windows DriverStore not found at $FR"
 SNSCFG=$(find "$FR" -maxdepth 1 -type d -name "$SENSORS_SNSCFG_GLOB" -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2- || true)
+[ "$REDIST" != 1 ] || SNSCFG="$SPEC_DIR/sp11-sensors.spec.in"     # a path that exists, for the inputs hash
 [ -n "$SNSCFG" ] || die "no $SENSORS_SNSCFG_GLOB package under $FR (the Windows sensor configuration)"
 # Without Windows there is no registry to export. The package then ships an empty registry directory: the
 # framework parses the configuration into it on the first attach (303 entries on an X1P64100 LCD, with Surface's
@@ -44,7 +49,9 @@ SNSCFG=$(find "$FR" -maxdepth 1 -type d -name "$SENSORS_SNSCFG_GLOB" -printf '%T
 # only in its Windows). The directory has to exist: with none the framework reports
 # "Could not open /persist/sensors/registry/registry/" and no sensor comes up.
 NO_REGISTRY=0
-if [ "$(windows_source)" = msi ] && [ ! -s "$REG/sns_reg_config" ]; then
+if [ "$REDIST" = 1 ]; then
+  rm -rf "$REG" "$OVR"; mkdir -p "$REG"; NO_REGISTRY=1
+elif [ "$(windows_source)" = msi ] && [ ! -s "$REG/sns_reg_config" ]; then
   log "no Windows: empty sensor registry, generic calibration (the DSP builds the registry from the configuration)"
   rm -rf "$REG"; mkdir -p "$REG"; NO_REGISTRY=1
 fi
@@ -54,7 +61,7 @@ fi
 sensors_inputs() {
   local -a in=("$SPEC_DIR/sp11-sensors.spec.in" "$REG" "$SNSCFG")
   [ -d "$OVR" ] && in+=("$OVR")
-  printf '%s\n' "SENSORS_PAYLOAD_DIR=$SENSORS_PAYLOAD_DIR" "SNSCFG=$(basename "$SNSCFG")" "NO_REGISTRY=$NO_REGISTRY" \
+  printf '%s\n' "SENSORS_PAYLOAD_DIR=$SENSORS_PAYLOAD_DIR" "SNSCFG=$(basename "$SNSCFG")" "NO_REGISTRY=$NO_REGISTRY" "REDIST=$REDIST" \
     | inputs_sha256 "${in[@]}" $(find "$PAYLOAD_DIR/sensors" -maxdepth 1 -type f \
         ! -name hexagonrpc.sysusers.conf ! -name 60-hexagonrpc-fastrpc.rules ! -name sp11-sam-posture | sort)
 }
@@ -140,6 +147,9 @@ install -d "$P/sensors/config" "$P/sensors/registry" "$P/socinfo"
 # every file it parsed in its registry (sns_reg_config, one stamp per JSON, seen matching Windows' file times to
 # the second); with none matching it discarded the registry and re-parsed everything (a partial mismatch has not
 # been seen).
+if [ "$REDIST" = 1 ]; then
+  log "redistributable: no sensor configuration in the package (sp11-firmware-fetch installs it)"
+else
 n_json=0
 for f in "$SNSCFG"/*.json; do install -p -m 0644 "$f" "$P/sensors/config/$(basename "$f")"; n_json=$((n_json + 1)); done
 [ "$n_json" -gt 0 ] || die "$(basename "$SNSCFG") holds no JSON sensor configuration"
@@ -168,6 +178,7 @@ for f in "$P/sensors/sns_reg.conf" "$P/sensors/config/json.lst" "$P"/socinfo/*; 
   ! grep -q $'\r' "$f" || die "carriage return left in ${f#"$P/"}"
 done
 log "sensor configuration: $n_json JSON files ($n_listed listed in json.lst${unlisted:+; unlisted: $unlisted}), sns_reg_config, platform $(tr -d '\r\n' < "$P/socinfo/hw_platform")/soc_id $(tr -d '\r\n' < "$P/socinfo/soc_id") <- ${SNSCFG#"$FR"/}"
+fi
 # This unit's registry (scripts/75) and Surface's calibration overrides, which take precedence over the package's JSONs.
 cp -a "$REG"/. "$P/sensors/registry/"
 # Windows keeps sns_reg_version and parsed_file_list.csv in the registry's parent directory (persist\sensors\registry\),
@@ -212,6 +223,9 @@ install -D -m 0644 "$SD/sp11-sensors-geoclue.rules" "$STAGE/usr/share/polkit-1/r
 # The directory the daemon serves: links into the package plus a writable copy of the registry (tmpfiles).
 install -d "$STAGE/usr/lib/tmpfiles.d"
 render "$SD/sp11-sensors.tmpfiles.conf" "$STAGE/usr/lib/tmpfiles.d/sp11-sensors.conf" PAYLOAD_DIR="$SENSORS_PAYLOAD_DIR"
+# No exported registry: there is no sns_reg_version or parsed_file_list.csv to place next to the registry copy
+# (the framework writes both itself), and a C line without its source only logs an error at every boot.
+[ "$NO_REGISTRY" != 1 ] || sed -i '\|/sensors/registry-parent/|d' "$STAGE/usr/lib/tmpfiles.d/sp11-sensors.conf"
 for s in sp11-sensors-guard sp11-sensors-reset; do
   install -m 0755 "$SD/$s" "$STAGE/usr/libexec/sp11/$s"; bash -n "$STAGE/usr/libexec/sp11/$s" || die "shell syntax error in $s"
 done
@@ -220,6 +234,7 @@ grep -q "hexagonrpcd -R /var/lib/sp11/hexagonrpc " "$STAGE/usr/lib/systemd/syste
 grep -q "^C /var/lib/sp11/hexagonrpc/sensors/persist/registry .* $SENSORS_PAYLOAD_DIR/sensors/registry\$" "$STAGE/usr/lib/tmpfiles.d/sp11-sensors.conf" || die "tmpfiles does not copy the registry from $SENSORS_PAYLOAD_DIR into sensors/persist"
 grep -q "^d /var/lib/sp11/hexagonrpc/sensors/persist 0755 fastrpc fastrpc" "$STAGE/usr/lib/tmpfiles.d/sp11-sensors.conf" || die "tmpfiles does not give the fastrpc user the persist directory hexagonrpcd maps to /persist/sensors/registry"
 for f in sns_reg_version parsed_file_list.csv; do
+  [ "$NO_REGISTRY" != 1 ] || continue
   grep -q "^C /var/lib/sp11/hexagonrpc/sensors/persist/$f .* $SENSORS_PAYLOAD_DIR/sensors/registry-parent/$f\$" "$STAGE/usr/lib/tmpfiles.d/sp11-sensors.conf" || die "tmpfiles does not place $f beside the registry copy"
 done
 # Nothing in the stage may reach into the DSP's lifecycle: the sensors keep running on the ADSP, and stopping it

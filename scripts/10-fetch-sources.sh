@@ -87,7 +87,7 @@ fi
 ## shader. The package is 177 MB, so an OLED build does not download it. Like atheros-firmware, it floats with the
 ## repos; step 30 pins the extracted files' hashes.
 QFW_DIR="$CACHE_DIR/qcom-firmware/f$FEDORA_RELEASE"
-if [ "$SP11_VARIANT" = lcd ]; then
+if [ "$SP11_VARIANT" = lcd ] || [ "$SP11_REDISTRIBUTABLE" = 1 ]; then
   mkdir -p "$QFW_DIR"
   if [ "${FORCE:-0}" = 1 ] || ! ls "$QFW_DIR"/qcom-firmware-*.rpm >/dev/null 2>&1; then
     log "downloading qcom-firmware (Fedora $FEDORA_RELEASE, for the LCD's 8380 shader and video firmware)"
@@ -134,7 +134,7 @@ fetch "$SECUREBOOT_STUB_SRPM_URL" "$CACHE_DIR/$SECUREBOOT_STUB_SRPM"
 verify_sha256 "$CACHE_DIR/$SECUREBOOT_STUB_SRPM" "$SECUREBOOT_STUB_SRPM_SHA256"
 ## Without Windows: Microsoft's driver package, unpacked into the DriverStore layout steps 30 and 45 read
 ## (sp11.conf, MS_DRIVER_MSI). 617 MB, so a build with Windows mounted does not download it.
-if [ "$(windows_source)" = msi ]; then
+if [ "$(windows_source)" = msi ] && [ "$SP11_REDISTRIBUTABLE" != 1 ]; then
   fetch "$MS_DRIVER_MSI_URL" "$CACHE_DIR/$MS_DRIVER_MSI"
   verify_sha256 "$CACHE_DIR/$MS_DRIVER_MSI" "$MS_DRIVER_MSI_SHA256"
   if [ "${FORCE:-0}" = 1 ] || [ "$(cat "$MSI_DRIVERSTORE/.source" 2>/dev/null)" != "$MS_DRIVER_MSI_SHA256" ]; then

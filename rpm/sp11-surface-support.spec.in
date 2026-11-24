@@ -1,6 +1,7 @@
 %global stage @STAGE@
 # 1 on the 5G SKU: the modem's rule, GNSS feed and ModemManager drop-in (scripts/30-build-support-rpm.sh, section 7).
 %global sp11_modem @MODEM@
+%global sp11_redist @REDIST@
 %global debug_package %{nil}
 %global __os_install_post %{nil}
 %global __strip /bin/true
@@ -29,6 +30,9 @@ Requires:       util-linux
 Requires:       kmod
 # sp11-secureboot-theme, which draws the menu shown while Secure Boot is on, is Python; so is the modem's GNSS feed.
 Requires:       python3
+# sp11-firmware-fetch unpacks Microsoft's driver package with these.
+Requires:       msitools
+Requires:       7zip
 %if %{sp11_modem}
 # The 5G modem's GNSS feed: GeoClue reads it, semodule loads its policy module.
 Requires:       geoclue2
@@ -130,7 +134,12 @@ fi
 /usr/lib/modules-load.d/sp11-scmi-cpufreq.conf
 /usr/share/dnf5/repos.override.d/90-sp11-kernel.repo
 %dir /etc/sp11
+%if %{sp11_redist}
+# Written on the installed system (sp11-firmware-fetch, or sp11-bt-apply from the firmware variable).
+%ghost %config(noreplace) /etc/sp11/bluetooth-address
+%else
 %config(noreplace) /etc/sp11/bluetooth-address
+%endif
 /etc/sp11/sp11.env
 %if %{sp11_modem}
 /usr/lib/udev/rules.d/77-sp11-modem.rules
