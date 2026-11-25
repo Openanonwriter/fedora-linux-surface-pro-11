@@ -193,7 +193,7 @@ power supplies: ADP1 BAT1 qcom-battmgr-ac qcom-battmgr-bat qcom-battmgr-usb qcom
 [    1.501009] fedora kernel: remoteproc remoteproc1: powering up cdsp
 [    1.502478] fedora kernel: remoteproc remoteproc1: Booting fw image qcom/x1e80100/microsoft/Denali/qccdsp8380.mbn, size 3174824
 [    1.597022] fedora kernel: remoteproc remoteproc1: remote processor cdsp is now up
-[    1.787141] fedora kernel: surface_serial_hub serial1-0: SAM firmware version: 27.201.139
+[    1.787141] fedora kernel: surface_serial_hub serial1-0: SAM firmware version: <redacted>
 [    2.040323] fedora kernel: Modules linked in: panel_edp(+) msm nvme surface_battery(OE) surface_hid nvme_core surface_temp surface_aggregator_hub surface_charger surface_hid_core surface_fan surfac
 [    5.981305] fedora kernel: synth uevent: /devices/platform/pmic-glink/pmic_glink.power-supply.0/power_supply/qcom-battmgr-ac: failed to send uevent
 [    5.981332] fedora kernel: power_supply qcom-battmgr-ac: uevent: failed to send synthetic uevent: -11
