@@ -214,6 +214,9 @@ install -m 0755 "$PAYLOAD_DIR/sp11-diag" "$STAGE/usr/libexec/sp11/sp11-diag"
 install -D -m 0644 "$PAYLOAD_DIR/sp11-first-boot.service" "$STAGE/usr/lib/systemd/system/sp11-first-boot.service"
 install -d "$STAGE/usr/lib/systemd/system/multi-user.target.wants"
 ln -sf ../sp11-first-boot.service "$STAGE/usr/lib/systemd/system/multi-user.target.wants/sp11-first-boot.service"
+# The installer runs this after an installation: an installation onto a USB drive needs GRUB beside shim in
+# EFI/BOOT, or the firmware never starts it (device test: the fallback loader resets into the internal drive).
+install -D -m 0644 "$PAYLOAD_DIR/80-sp11-removable-boot.ks" "$STAGE/usr/share/anaconda/post-scripts/80-sp11-removable-boot.ks"
 install -D -m 0755 "$PAYLOAD_DIR/15-sp11-surface.install" "$STAGE/usr/lib/kernel/install.d/15-sp11-surface.install"
 # Secure Boot (docs/secure-boot.md): the tool that keeps the signed boot images' copies on the ESP and their GRUB
 # entries, the tool that draws the menu shown then, the kernel-install plugin and the unit that run the first,
