@@ -1,0 +1,16 @@
+#!/usr/bin/python3 -I
+"""Set a fixed sensor digital gain on the Surface Pro 11 cameras.
+libcamera's software ISP only drives exposure and analogue gain, which run out in normal indoor light;
+a fixed digital gain lets its auto-exposure settle at a normal brightness. Called by udev with /dev/v4l-subdevN."""
+import fcntl, os, struct, sys
+
+GAIN = {'ov13858': 4096, 'imx681': 1024}   # 4x on both (ov13858: 1024 = 1x, imx681: 256 = 1x)
+V4L2_CID_DIGITAL_GAIN = 0x009f0905
+S_CTRL = (3 << 30) | (8 << 16) | (ord('V') << 8) | 28
+
+dev = sys.argv[1]
+name = open(f'/sys/class/video4linux/{os.path.basename(dev)}/name').read().split()[0]
+if name in GAIN:
+    fd = os.open(dev, os.O_RDWR)
+    fcntl.ioctl(fd, S_CTRL, bytearray(struct.pack('<Ii', V4L2_CID_DIGITAL_GAIN, GAIN[name])))
+    print(f'{name}: digital gain {GAIN[name]}')

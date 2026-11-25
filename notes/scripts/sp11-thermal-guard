@@ -1,0 +1,27 @@
+#!/usr/bin/bash
+# Thermal guard for long builds on the Surface Pro 11 (the device tree has no passive CPU trip below the 115 C
+# critical one). Every 15 s: log the hottest zone, fan, power; step the CPU frequency cap down when the hottest zone is
+# >= 90 C or the SSD >= 70 C, and up again at <= 80 C with the SSD <= 62 C. Restores the full range on exit. Usage: sudo sp11-thermal-guard [logfile]
+LOG=${1:-$HOME/src/pr4/build/thermal.log}
+# kHz, lowest to highest cap this guard uses. SP11_GUARD_MAX (kHz) limits the top step, for a cooler, slower run.
+STEPS=(710400 806400 998400 1190400 1440000 1670400 1920000 2188800 2515200)
+TOP=8
+for k in "${!STEPS[@]}"; do [ "${STEPS[$k]}" -le "${SP11_GUARD_MAX:-2515200}" ] && TOP=$k; done
+i=$TOP
+setcap() { for p in /sys/devices/system/cpu/cpufreq/policy*; do echo "$1" > "$p/scaling_max_freq"; done; }
+restore() { for p in /sys/devices/system/cpu/cpufreq/policy*; do cat "$p/cpuinfo_max_freq" > "$p/scaling_max_freq"; done; }
+trap 'restore; exit 0' TERM INT EXIT
+setcap "${STEPS[$i]}"
+while :; do
+  read -r t zone < <(for z in /sys/class/thermal/thermal_zone*; do echo "$(cat "$z/temp" 2>/dev/null) $(cat "$z/type")"; done | sort -rn | head -1)
+  c=$((t / 1000))
+  n=0; for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = nvme ] && n=$(( $(cat "$h/temp1_input") / 1000 )); done
+  if { [ "$c" -ge 90 ] || [ "$n" -ge 70 ]; } && [ "$i" -gt 0 ]; then i=$((i - 1)); setcap "${STEPS[$i]}"
+  elif [ "$c" -le 80 ] && [ "$n" -le 62 ] && [ "$i" -lt "$TOP" ]; then i=$((i + 1)); setcap "${STEPS[$i]}"; fi
+  printf '%s max %s C %s  ssd %s C  cap %s MHz  fan %s rpm  %s W into battery  batt %s%% %s  load %s\n' "$(date +%T)" "$c" "$zone" "$n" \
+    "$((STEPS[i] / 1000))" "$(cat /sys/class/hwmon/hwmon*/fan1_input 2>/dev/null | head -1)" \
+    "$(awk '{printf "%+.1f", $1 / 1e6}' /sys/class/power_supply/qcom-battmgr-bat/power_now 2>/dev/null)" \
+    "$(cat /sys/class/power_supply/qcom-battmgr-bat/capacity 2>/dev/null)" "$(cat /sys/class/power_supply/qcom-battmgr-bat/status 2>/dev/null)" \
+    "$(cut -d' ' -f1 /proc/loadavg)" >> "$LOG"
+  sleep 15
+done

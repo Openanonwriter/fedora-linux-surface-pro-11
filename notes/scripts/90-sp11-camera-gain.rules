@@ -1,0 +1,2 @@
+# Surface Pro 11: fixed digital gain so libcamera's software auto-exposure can reach normal brightness
+ACTION=="add", SUBSYSTEM=="video4linux", KERNEL=="v4l-subdev*", ATTR{name}=="ov13858 *|imx681 *", RUN+="/usr/local/sbin/sp11-camera-gain /dev/%k"

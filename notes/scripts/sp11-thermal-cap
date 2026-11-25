@@ -1,0 +1,25 @@
+#!/usr/bin/bash
+# Keep the hottest CPU/SoC sensor below a limit by capping the CPU frequency (all cpufreq policies).
+# Usage: sp11-thermal-cap [LIMIT_C]   (default 72: steps down at LIMIT, steps up again 8 C below it)
+LIMIT=${1:-72}; LOW=$((LIMIT - 8))
+P=(/sys/devices/system/cpu/cpufreq/policy*)
+read -ra F < "${P[0]}/scaling_available_frequencies"
+max=$(( ${#F[@]} - 1 )); i=$(( max / 2 )); n=0   # start at a middle speed: no spike before the first reading
+set_cap() { for p in "${P[@]}"; do echo "${F[$1]}" > "$p/scaling_max_freq"; done; }
+trap 'set_cap $max; exit 0' TERM INT EXIT
+set_cap $i
+while :; do
+  t=0
+  for z in /sys/class/thermal/thermal_zone*; do
+    case "$(cat "$z/type")" in cpu*|gpu*|aoss*|nsp*|mem*|video*|camera*)
+      v=$(cat "$z/temp" 2>/dev/null || echo 0); [ "$v" -gt "$t" ] && t=$v ;; esac
+  done
+  t=$((t / 1000))
+  if [ "$t" -ge "$LIMIT" ] && [ "$i" -gt 0 ]; then i=$((i - 1)); [ "$t" -ge $((LIMIT + 2)) ] && [ "$i" -gt 0 ] && i=$((i - 1)); set_cap $i
+    n=0
+  elif [ "$t" -le "$LOW" ] && [ "$i" -lt "$max" ]; then
+    n=$((n + 1)); if [ "$n" -ge 5 ]; then i=$((i + 1)); set_cap $i; n=0; fi   # one step up per 10 s of cool readings
+  fi
+  echo "$(date +%T) temp=${t}C cap=$((F[i] / 1000))MHz" > /run/sp11-thermal-cap.status
+  sleep 2
+done

@@ -1,0 +1,70 @@
+boot_id=<redacted> date=2026-11-23T21:14:07-08:00
+remoteproc adsp state=offline
+remoteproc cdsp state=running
+--- kernel log
+OF: reserved mem: 0x0000000081ca0000..0x0000000081cdffff (256 KiB) nomap non-reusable tme-crash-dump@81ca0000
+OF: reserved mem: 0x0000000084b00000..0x00000000852fffff (8192 KiB) nomap non-reusable adsp-rpc-remote-heap@84b00000
+OF: reserved mem: 0x00000000866c0000..0x00000000866fffff (256 KiB) nomap non-reusable adsp-boot-dtb@866c0000
+OF: reserved mem: 0x0000000086b00000..0x00000000876fffff (12288 KiB) nomap non-reusable adsp-boot@86b00000
+OF: reserved mem: 0x0000000087e00000..0x000000008b7fffff (59392 KiB) nomap non-reusable adspslpi@87e00000
+OF: reserved mem: 0x000000008b800000..0x000000008b87ffff (512 KiB) nomap non-reusable q6-adsp-dtb@8b800000
+CPU features: detected: Address authentication (architected QARMA5 algorithm)
+Kernel command line: BOOT_IMAGE=(hd0,gpt2)/vmlinuz-7.3.5-300.sp11.1.fc45.aarch64 root=UUID=<redacted> ro rootflags=subvol=root rhgb quiet clk_ignore_unused pd_ignore_unused systemd.tpm2_wait=0 soundwire_qcom.sp11_feedback_active_offset2_zero=1 sp11.adsptest=1
+Unknown kernel command line parameters "rhgb", will be passed to user space.
+CPU features: detected: Generic authentication (architected QARMA5 algorithm)
+CPU features: detected: Speculative Store Bypassing Safe (SSBS)
+scmi_core: SCMI protocol bus registered
+atomic64_test: passed
+ima: No TPM chip found, activating TPM-bypass!
+qcom_scm: convention: smc arm 64
+qcom_scm firmware:scm: qseecom: found qseecom with version 0x1402000
+Checked W+X mappings: passed, no W+X pages found
+scmi_cpufreq: loading out-of-tree module taints kernel.
+scmi_cpufreq: module verification failed: signature and/or required key missing - tainting kernel
+arm-scmi arm-scmi.0.auto: Using scmi_mailbox_transport
+arm-scmi arm-scmi.0.auto: SCMI max-rx-timeout: 30ms / max-msg-size: 104bytes / max-msg: 20
+arm-scmi arm-scmi.0.auto: SCMI Notifications - Core Enabled.
+arm-scmi arm-scmi.0.auto: SCMI Protocol v2.0 'Qualcomm:' Firmware version 0x20000
+arm-scmi arm-scmi.0.auto: Enabling SCMI Quirk [quirk_perf_level_get_fc_force]
+arm-scmi arm-scmi.0.auto: Enabling SCMI Quirk [quirk_clock_rates_triplet_out_of_spec]
+scmi-perf-domain scmi_dev.4: Initialized 3 performance domains
+remoteproc remoteproc0: adsp is available
+remoteproc remoteproc0: powering up adsp
+remoteproc remoteproc0: Booting fw image qcom/x1e80100/microsoft/Denali/qcadsp8380.mbn, size 22312232
+qcom_q6v5_pas 6800000.remoteproc: error -22 initializing firmware qcom/x1e80100/microsoft/Denali/adsp_dtb.mbn
+remoteproc remoteproc0: Failed to load program segments: -22
+qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier 1-0008 for /pmic-glink/connector@0
+qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier a600000.usb for /pmic-glink/connector@0
+qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier 3-0008 for /pmic-glink/connector@1
+nvme nvme0: passthrough uses implicit buffer lengths
+qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier a800000.usb for /pmic-glink/connector@1
+Modules linked in: panel_edp(+) msm xhci_plat_hcd nvme surface_hid nvme_core surface_battery surface_aggregator_hub surface_charger surface_hid_core surface_temp surface_fan surface_aggregator_registry ubwc_config phy_qcom_qmp_combo leds_qcom_lpg surface_aggregator led_class_multicolor ocmem ucsi_glink nvme_keyring drm_gpuvm rpmsg_ctrl dwc3_qcom pmic_glink_altmode nvme_auth rpmsg_char qrtr_smd qcom_pd_mapper socinfo typec_ucsi qcom_battmgr aux_hpd_bridge crc_itu_t rtc_pm8xxx qcom_pbs ps883x nvmem_qcom_spmi_sdam phy_qcom_eusb2_repeater qcom_pon dwc3 spi_geni_qcom aux_bridge drm_exec gpu_sched phy_snps_eusb2 typec qcom_stats dispcc_x1e80100 ghash_ce udc_core phy_qcom_edp camcc_x1e80100 drm_dp_aux_bus i2c_qcom_cci videocc_sm8550 gpi pinctrl_sm8550_lpass_lpi ulpi gf128mul pinctrl_lpass_lpi drm_display_helper lpasscc_sc8280xp qrtr llcc_qcom gpucc_x1e80100 cec icc_bwmon qcom_ipcc nvmem_qfprom pmic_glink phy_qcom_qmp_pcie qcom_hwspinlock sbsa_gwdt qcom_cpucp_mbox pdr_interface qcom_pdr_msg smp2p pwrseq_qcom_wcn
+ gpio_keys pwm_bl qcom_q6v5_pas qcom_pil_info qcom_common qcom_glink_smem qcom_glink qcom_q6v5 qcom_sysmon mdt_loader qcom_aoss qcom_smd qcom_smem qmi_helpers rpmsg_core fuse i2c_dev scmi_cpufreq(OE)
+systemd-ask-password-console.path - Dispatch Password Requests to Console Directory Watch skipped, unmet condition check ConditionPathExists=!/run/plymouth/pid
+Started systemd-ask-password-wall.path - Forward Password Requests to Wall Directory Watch.
+Listening on systemd-ask-password.socket - Query the User Interactively for a Password.
+auth-rpcgss-module.service - Kernel Module supporting RPCSEC_GSS skipped, unmet condition check ConditionPathExists=/etc/krb5.keytab
+synth uevent: /devices/platform/pmic-glink/pmic_glink.power-supply.0/power_supply/qcom-battmgr-ac: failed to send uevent
+power_supply qcom-battmgr-ac: uevent: failed to send synthetic uevent: -11
+synth uevent: /devices/platform/pmic-glink/pmic_glink.power-supply.0/power_supply/qcom-battmgr-bat: failed to send uevent
+power_supply qcom-battmgr-bat: uevent: failed to send synthetic uevent: -11
+synth uevent: /devices/platform/pmic-glink/pmic_glink.power-supply.0/power_supply/qcom-battmgr-usb: failed to send uevent
+power_supply qcom-battmgr-usb: uevent: failed to send synthetic uevent: -11
+synth uevent: /devices/platform/pmic-glink/pmic_glink.power-supply.0/power_supply/qcom-battmgr-wls: failed to send uevent
+power_supply qcom-battmgr-wls: uevent: failed to send synthetic uevent: -11
+wlP4p1s0: authenticate with xx:xx:xx:xx:xx:xx (local address=xx:xx:xx:xx:xx:xx)
+wlP4p1s0: send auth to xx:xx:xx:xx:xx:xx (try 1/3)
+wlP4p1s0: authenticate with xx:xx:xx:xx:xx:xx (local address=xx:xx:xx:xx:xx:xx)
+wlP4p1s0: send auth to xx:xx:xx:xx:xx:xx (try 1/3)
+wlP4p1s0: authenticated
+--- power supplies
+ADP1
+qcom-battmgr-ac
+qcom-battmgr-bat
+qcom-battmgr-usb
+qcom-battmgr-wls
+cat: /sys/class/power_supply/qcom-battmgr-bat/capacity: Resource temporarily unavailable
+--- sound cards
+--- no soundcards ---
+--- sensors
+Unable to initialize accelerometer sensor: SSC QMI Service not found

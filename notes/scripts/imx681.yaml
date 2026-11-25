@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: CC0-1.0
+# Surface Pro 11 front camera (imx681): lift brightness via the CCM (fixed black level 4096 crushed shadows).
+%YAML 1.1
+---
+version: 1
+algorithms:
+  - BlackLevel:
+  - Awb:
+  - Ccm:
+      ccms:
+        - ct: 6500
+          ccm: [ 1.50, 0,    0,
+                 0,    1.50, 0,
+                 0,    0,    1.50 ]
+  - Adjust:
+  - Agc:
+...

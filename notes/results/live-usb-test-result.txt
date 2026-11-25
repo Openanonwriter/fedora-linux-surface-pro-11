@@ -1,0 +1,131 @@
+######## BEFORE firmware step  02:04:08
+cmdline: BOOT_IMAGE=(hd0)/boot/aarch64/loader/linux root=live:CDLABEL=Fedora-WS-Live-45 rd.live.image rd.live.check clk_ignore_unused pd_ignore_unused systemd.tpm2_wait=0 soundwire_qcom.sp11_feedback_active_offset2_zero=1
+kernel: 7.3.5-300.sp11.4.fc45.aarch64   model: Microsoft Surface Pro 11th Edition (LCD)
+live root: LiveOS_rootfs overlay 
+cpus online: 0-9  cpufreq: boost policy0 policy4 policy7 
+backlight: backlight  max=4095 
+remoteproc adsp: offline
+remoteproc cdsp: running
+firmware dir: cdsp_dtb.mbn qccdsp8380.mbn qcdxkmsuc8380.mbn qcvss8380.mbn 
+gpu: 0 zap/hw-init lines; render node: by-path card1 renderD128 
+video: qcom-iris-decoder qcom-iris-encoder 
+wifi: wlP4p1s0:connected lo:connected (externally) 
+bluetooth: Controller xx:xx:xx:xx:xx:xx (public) 	Powered: yes   file: sp11.env
+battery: cat: /sys/class/power_supply/qcom-battmgr-bat/capacity: Resource temporarily unavailable
+sound cards: 0
+sensor payload files: 0  registry entries: 0
+sensors:
+  accelerometer: Unable to initialize accelerometer sensor: SSC QMI Service not found
+  light: Unable to initialize light sensor: SSC QMI Service not found
+input: 5 touch/pen/keyboard devices
+failed units: 
+kernel errors:
+      2 integrity: Couldn't get size: Unsupported (0x8000000000000003)
+      1 '/usr/lib/systemd/system-generators/dracut-crypt-generator' failed with exit status 2.
+      1 surface_hid 01:15:01:06:00: unexpected descriptor length: got 0, expected 9
+      1 surface_hid 01:15:01:06:00: probe with driver surface_hid failed with error -71
+      1 remoteproc remoteproc0: request_firmware failed: -2
+      1 qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier a800000.usb for /pmic-glink/connector@1
+      1 qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier a600000.usb for /pmic-glink/connector@0
+      1 qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier 3-0008 for /pmic-glink/connector@1
+      1 qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier 1-0008 for /pmic-glink/connector@0
+      1 power_supply qcom-battmgr-wls: uevent: failed to send synthetic uevent: -11
+      1 power_supply qcom-battmgr-usb: uevent: failed to send synthetic uevent: -11
+      1 power_supply qcom-battmgr-bat: uevent: failed to send synthetic uevent: -11
+######## running sp11-firmware-fetch (package: /mnt/<user>/sp11-iso-test/../sp11-firmware-ms/microsoft-msi/SurfacePro11_ARM_Win11_26100_26.094.41119.0.msi)
+sp11-firmware-fetch: installing msitools
+Package   Arch    Version           Repository      Size
+Installing:
+ msitools aarch64 0:0.106.73-1.fc45 fedora       2.1 MiB
+Installing dependencies:
+ libgcab1 aarch64 0:1.6-12.fc45     fedora     211.9 KiB
+ libmsi1  aarch64 0:0.106.73-1.fc45 fedora     311.4 KiB
+
+Transaction Summary:
+ Installing:         3 packages
+
+Importing OpenPGP key 0xF577861E:
+ UserID     : "Fedora (45) <fedora-45-primary@fedoraproject.org>"
+ Fingerprint: 4F50A6114CD5C6976A7F1179655A4B02F577861E
+ From       : file:///usr/share/pki/rpm-gpg/RPM-GPG-KEY-fedora-45-aarch64
+The key was successfully imported.
+[1/5] Verify package files              100% | 428.0   B/s |   3.0   B |  00m00s
+[2/5] Prepare transaction               100% |  15.0   B/s |   3.0   B |  00m00s
+[3/5] Installing libmsi1-0:0.106.73-1.f 100% |  38.9 MiB/s | 318.7 KiB |  00m00s
+[4/5] Installing libgcab1-0:1.6-12.fc45 100% |  42.7 MiB/s | 218.7 KiB |  00m00s
+[5/5] Installing msitools-0:0.106.73-1. 100% | 616.5 KiB/s |   2.2 MiB |  00m04s
+sp11-firmware-fetch: package is a tested version: SurfacePro11_ARM_Win11_26100_26.094.41119.0.msi
+sp11-firmware-fetch: firmware qcadsp8380.mbn       <- Microsoft (proextadsp/qcadsp8380.mbn, sha256 921870a839ee...)
+sp11-firmware-fetch: firmware adsp_dtb.mbn         <- Microsoft (proextadsp/adsp_dtbs.elf, sha256 544bd795cb06...)
+sp11-firmware-fetch: firmware qccdsp8380.mbn       <- Fedora qcom-firmware (dell/xps13-9345/qccdsp8380.mbn.xz, sha256 3df4de099b23...)
+sp11-firmware-fetch: firmware cdsp_dtb.mbn         <- Fedora qcom-firmware (dell/xps13-9345/cdsp_dtbs.elf.xz, sha256 664758a227f3...)
+sp11-firmware-fetch: firmware qcdxkmsuc8380.mbn    <- Fedora qcom-firmware (dell/xps13-9345/qcdxkmsuc8380.mbn.xz, sha256 585f674954e1...)
+sp11-firmware-fetch: firmware qcvss8380.mbn        <- Fedora qcom-firmware (LENOVO/21N1/qcvss8380.mbn.xz, sha256 71180840fe3c...)
+sp11-firmware-fetch: sensor payload: 74 file(s) installed, 0 existing kept, in /usr/share/qcom/x1e80100/Microsoft/denali-lcd
+sp11-firmware-fetch: Bluetooth address: set from the firmware (ends xx:xx)
+sp11-firmware-fetch: done. Reboot to start the DSPs with the new firmware.
+fetch exit: 0
+starting the audio/sensor DSP
+Warning: The unit file, source configuration file or drop-ins of hexagonrpcd-adsp-sensorspd.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+######## AFTER firmware step  02:05:18
+cmdline: BOOT_IMAGE=(hd0)/boot/aarch64/loader/linux root=live:CDLABEL=Fedora-WS-Live-45 rd.live.image rd.live.check clk_ignore_unused pd_ignore_unused systemd.tpm2_wait=0 soundwire_qcom.sp11_feedback_active_offset2_zero=1
+kernel: 7.3.5-300.sp11.4.fc45.aarch64   model: Microsoft Surface Pro 11th Edition (LCD)
+live root: LiveOS_rootfs overlay 
+cpus online: 0-9  cpufreq: boost policy0 policy4 policy7 
+backlight: backlight  max=4095 
+remoteproc adsp: running
+remoteproc cdsp: running
+firmware dir: adsp_dtb.mbn cdsp_dtb.mbn qcadsp8380.mbn qccdsp8380.mbn qcdxkmsuc8380.mbn qcvss8380.mbn 
+gpu: 0 zap/hw-init lines; render node: by-path card1 renderD128 
+video: qcom-iris-decoder qcom-iris-encoder 
+wifi: wlP4p1s0:connected lo:connected (externally) 
+bluetooth: Controller xx:xx:xx:xx:xx:xx (public) 	Powered: yes   file: bluetooth-address
+sp11.env
+battery: 27
+sound cards: 0
+sensor payload files: 74  registry entries: 303
+sensors:
+  accelerometer: Accelerometer sensor measurement: X=2.170290 Y=8.312666 Z=5.302495 m/s²
+  light: Light sensor measurement: 1.000000 Lux
+input: 5 touch/pen/keyboard devices
+failed units: 
+kernel errors:
+     14 erofs (device loop0): read error -5 @ 896364 of nid 70307328
+     12 erofs (device loop0): read error -5 @ 114 of nid 31398311
+      8 I/O error, dev loop0, sector 4278576 op 0x0:(READ) flags 0x0 phys_seg 64 prio class 3
+      8 I/O error, dev loop0, sector 4278176 op 0x0:(READ) flags 0x4000 phys_seg 40 prio class 3
+      8 Buffer I/O error on dev loop0, logical block 245747, async page read
+      8 Buffer I/O error on dev loop0, logical block 245701, async page read
+      6 I/O error, dev loop0, sector 1965976 op 0x0:(READ) flags 0x800000 phys_seg 1 prio class 3
+      6 I/O error, dev loop0, sector 1965608 op 0x0:(READ) flags 0x800000 phys_seg 1 prio class 3
+      6 erofs (device loop0): failed to read inode meta block (nid: 31455816): -5
+      6 erofs (device loop0): failed to read inode meta block (nid: 31455720): -5
+      6 erofs (device loop0): failed to read inode meta block (nid: 31455702): -5
+      6 erofs (device loop0): failed to read inode meta block (nid: 31449774): -5
+######## hexagonrpcd
+      1 Could not attach to FastRPC node: No such file or directory
+      1 Could not open c:/Data/test/cam_registry_dump.txt (w): No such file or directory
+      1 Could not open oemconfig.so (rb): No such file or directory
+      1 Could not open /persist/sensors/registry/parsed_file_list.csv: No such file or directory
+      1 Could not open /persist/sensors/registry/registry/color_calibration.bin: No such file or directory
+      1 Could not open /persist/sensors/registry/registry/sns_secure_database.bin: No such file or directory
+      1 Could not open /persist/sensors/registry/sns_reg_version: No such file or directory
+      1 Could not open sns_tppe.so (rb): No such file or directory
+      1 Could not open /vendor/etc/sensors/config/acs_multiplier.bin: No such file or directory
+      1 Could not open /vendor/etc/sensors/config/dev_runtime_mod.bin: No such file or directory
+######## dmesg remoteproc
+remoteproc remoteproc1: stopped remote processor cdsp
+remoteproc remoteproc1: remote processor cdsp is now up
+qcom,fastrpc 32300000.remoteproc:glink-edge.fastrpcglink-apps-dsp.-1.-1: no reserved DMA memory for FASTRPC
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@1: Adding to iommu group 14
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@2: Adding to iommu group 15
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@3: Adding to iommu group 16
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@4: Adding to iommu group 17
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@5: Adding to iommu group 18
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@6: Adding to iommu group 19
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@7: Adding to iommu group 20
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@8: Adding to iommu group 21
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@10: Adding to iommu group 22
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@11: Adding to iommu group 23
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@12: Adding to iommu group 24
+platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@13: Adding to iommu group 25
