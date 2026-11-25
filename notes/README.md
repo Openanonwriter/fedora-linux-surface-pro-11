@@ -10,6 +10,8 @@ project's documentation under `docs/`, and nothing here has been reviewed by the
 >   earlier base. On this base (current `main` plus the LCD support of PR #4) it has not been built or booted yet.
 > - Everything was tested on one LCD unit with Secure Boot off. OLED and 5G models are untested.
 > - The installer step for installs onto a USB drive (`payload/80-sp11-removable-boot.ks`) is untested.
+> - The battery reading from the embedded controller (`payload/sp11-ec-battery.conf`, and a kernel commit that is
+>   not in the project's kernel) is untested with the DSP offline.
 
 Start with [the report](report-no-windows.md): it is the short version of the whole no-Windows result.
 
@@ -20,6 +22,7 @@ calibration is in this repository.
 
 ### Firmware: what comes from where
 
+- [What works without the audio/sensor DSP firmware](firmware/without-the-audio-sensor-dsp.md)
 - [ADSP swap test](firmware/adsp-swap-test.md)
 - [Bluetooth address without Windows](firmware/bluetooth-address-without-windows.md)
 - [Firmware fetch tool](firmware/firmware-fetch-tool.md)

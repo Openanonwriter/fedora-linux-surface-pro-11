@@ -170,6 +170,9 @@ install -m 0755 "$PAYLOAD_DIR/sp11-bt-apply" "$STAGE/usr/libexec/sp11/sp11-bt-ap
 install -D -m 0644 "$PAYLOAD_DIR/sp11-bluetooth-address@.service" "$STAGE/usr/lib/systemd/system/sp11-bluetooth-address@.service"
 install -D -m 0644 "$PAYLOAD_DIR/99-sp11-bluetooth-address.rules" "$STAGE/usr/lib/udev/rules.d/99-sp11-bluetooth-address.rules"
 install -d -m 0755 "$STAGE/etc/sp11"
+# Without the ADSP firmware qcom_battmgr has no battery: let the EC's battery driver bind until it is installed.
+[ "$SP11_REDISTRIBUTABLE" != 1 ] \
+  || install -D -m 0644 "$PAYLOAD_DIR/sp11-ec-battery.conf" "$STAGE/usr/lib/modprobe.d/sp11-ec-battery.conf"
 if [ "$SP11_REDISTRIBUTABLE" != 1 ]; then
   printf '# Bluetooth public address of this Surface Pro 11 (from Windows)\nSP11_BT_MAC="%s"\n' "$SP11_BT_MAC" > "$STAGE/etc/sp11/bluetooth-address"
   chmod 0600 "$STAGE/etc/sp11/bluetooth-address"

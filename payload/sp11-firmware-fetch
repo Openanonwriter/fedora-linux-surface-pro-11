@@ -294,6 +294,19 @@ def main():
                 else:
                     log('Bluetooth address: no MacAddressEmulationAddress variable; not set')
 
+    # With the DSP firmware in place qcom_battmgr reports the battery: mask the option that lets the embedded
+    # controller's battery driver bind, or two batteries show.
+    ec_opt = os.path.join(root, 'usr/lib/modprobe.d/sp11-ec-battery.conf')
+    ec_mask = os.path.join(root, 'etc/modprobe.d/sp11-ec-battery.conf')
+    if (not a.no_firmware and os.path.exists(ec_opt) and not os.path.exists(ec_mask)
+            and os.path.exists(os.path.join(root, FW_DIR, 'qcadsp8380.mbn'))):
+        os.makedirs(os.path.dirname(ec_mask), exist_ok=True)
+        with open(ec_mask, 'w') as f:
+            f.write('# Masks /usr/lib/modprobe.d/sp11-ec-battery.conf: the audio/sensor DSP firmware is installed,\n'
+                    '# so qcom_battmgr reports the battery (written by sp11-firmware-fetch).\n')
+        changed.append(ec_mask)
+        log('battery: the DSP reports it from the next start; embedded-controller reading switched off')
+
     if root == '/' and changed:
         if shutil.which('restorecon'):
             subprocess.run(['restorecon'] + changed, check=False)

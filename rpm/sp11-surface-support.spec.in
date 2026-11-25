@@ -137,6 +137,7 @@ fi
 /usr/share/dnf5/repos.override.d/90-sp11-kernel.repo
 %dir /etc/sp11
 %if %{sp11_redist}
+/usr/lib/modprobe.d/sp11-ec-battery.conf
 # Written on the installed system (sp11-firmware-fetch, or sp11-bt-apply from the firmware variable).
 %ghost %config(noreplace) /etc/sp11/bluetooth-address
 %else
