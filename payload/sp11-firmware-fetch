@@ -36,6 +36,9 @@ SOCINFO = ['hw_platform', 'soc_id', 'revision', 'platform_version', 'platform_su
 
 def log(*a): print('sp11-firmware-fetch:', *a, flush=True)
 def die(msg): sys.exit('sp11-firmware-fetch: error: ' + msg)
+def is_live_session():
+    try: return any(w.startswith('root=live:') or w == 'rd.live.image' for w in open('/proc/cmdline').read().split())
+    except OSError: return False
 
 
 def sha256(path):
@@ -157,6 +160,8 @@ def main():
     ap.add_argument('--no-firmware', action='store_true'); ap.add_argument('--no-sensors', action='store_true')
     ap.add_argument('--no-initramfs', action='store_true', help='do not rebuild the initramfs afterwards')
     ap.add_argument('--print-url', action='store_true', help='only print the package\'s current download link')
+    ap.add_argument('--allow-live', action='store_true',
+                    help='run in a live (USB) session anyway; nothing installed there survives a reboot')
     a = ap.parse_args()
 
     if a.print_url:
@@ -168,6 +173,11 @@ def main():
         log('installing', ' '.join(missing))
         subprocess.run(['dnf', 'install', '-y', '-q'] + missing, check=True)
     root = os.path.abspath(a.root)
+    if root == '/' and not a.allow_live and is_live_session():
+        die('this is the live session started from the installation medium. Install Fedora to the disk first, '
+            'restart into the installed system and run this tool there. In a live session the files are lost '
+            'at the next restart, and starting the audio/sensor DSP resets the USB port the session runs from '
+            '(seen on an LCD unit: the desktop froze). Use --allow-live to run it anyway.')
     try:
         os.makedirs(root, exist_ok=True)
     except OSError:
