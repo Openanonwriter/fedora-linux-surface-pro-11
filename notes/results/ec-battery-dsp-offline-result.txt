@@ -1,0 +1,234 @@
+cmdline: BOOT_IMAGE=(hd0,gpt2)/vmlinuz-7.3.5-300.sp11.1.fc45.aarch64 root=UUID=<redacted> ro rootflags=subvol=root rhgb quiet clk_ignore_unused pd_ignore_unused systemd.tpm2_wait=0 soundwire_qcom.sp11_feedback_active_offset2_zero=1 sp11test=ecbat surface_battery.denali_bind=1
+surface_battery denali_bind: Y
+battery device driver: surface_battery
+######## first 20:15:33
+remoteproc adsp: offline
+remoteproc cdsp: running
+power supplies: ADP1 BAT1 qcom-battmgr-ac qcom-battmgr-bat qcom-battmgr-usb qcom-battmgr-wls 
+== BAT1
+   present=1
+   status=Charging
+   capacity=65
+   energy_now=29700000
+   energy_full=45050000
+   energy_full_design=46530000
+   power_now=34527000
+   voltage_now=8348000
+   cycle_count=89
+   manufacturer=DYN
+== qcom-battmgr-bat
+   present=cat: /sys/class/power_supply/qcom-battmgr-bat/present: Resource temporarily unavailable
+   status=cat: /sys/class/power_supply/qcom-battmgr-bat/status: Resource temporarily unavailable
+   capacity=cat: /sys/class/power_supply/qcom-battmgr-bat/capacity: Resource temporarily unavailable
+   energy_now=cat: /sys/class/power_supply/qcom-battmgr-bat/energy_now: Resource temporarily unavailable
+   energy_full=cat: /sys/class/power_supply/qcom-battmgr-bat/energy_full: Resource temporarily unavailable
+   energy_full_design=cat: /sys/class/power_supply/qcom-battmgr-bat/energy_full_design: Resource temporarily unavailable
+   power_now=cat: /sys/class/power_supply/qcom-battmgr-bat/power_now: Resource temporarily unavailable
+   voltage_now=cat: /sys/class/power_supply/qcom-battmgr-bat/voltage_now: Resource temporarily unavailable
+   cycle_count=cat: /sys/class/power_supply/qcom-battmgr-bat/cycle_count: Resource temporarily unavailable
+   manufacturer=cat: /sys/class/power_supply/qcom-battmgr-bat/manufacturer: Resource temporarily unavailable
+== ADP1
+   online=1
+== qcom-battmgr-ac
+   online=cat: /sys/class/power_supply/qcom-battmgr-ac/online: Resource temporarily unavailable
+######## upower
+/org/freedesktop/UPower/devices/line_power_qcom_battmgr_ac
+/org/freedesktop/UPower/devices/battery_qcom_battmgr_bat
+/org/freedesktop/UPower/devices/battery_BAT1
+/org/freedesktop/UPower/devices/line_power_ADP1
+/org/freedesktop/UPower/devices/DisplayDevice
+Device: /org/freedesktop/UPower/devices/line_power_qcom_battmgr_ac
+  native-path:          qcom-battmgr-ac
+  power supply:         yes
+  updated:              Tue 24 Nov 2026 12:14:46 PM PST (28850 seconds ago)
+  has history:          no
+  has statistics:       no
+  line-power
+    warning-level:       none
+    online:              no
+    icon-name:          'ac-adapter-symbolic'
+
+Device: /org/freedesktop/UPower/devices/battery_qcom_battmgr_bat
+  native-path:          qcom-battmgr-bat
+  power supply:         yes
+  updated:              Tue 24 Nov 2026 08:15:30 PM PST (6 seconds ago)
+  has history:          yes
+  has statistics:       yes
+  battery
+    present:             yes
+    rechargeable:        yes
+    state:               empty
+    warning-level:       none
+    energy:              0 Wh
+    energy-empty:        0 Wh
+    energy-full:         0 Wh
+    energy-full-design:  0 Wh
+    energy-rate:         0 W
+    charge-cycles:       N/A
+    percentage:          0%
+    icon-name:          'battery-empty-symbolic'
+
+Device: /org/freedesktop/UPower/devices/battery_BAT1
+  native-path:          BAT1
+  vendor:               DYN
+  power supply:         yes
+  updated:              Tue 24 Nov 2026 08:15:20 PM PST (16 seconds ago)
+  has history:          yes
+  has statistics:       yes
+  battery
+    present:             yes
+    rechargeable:        yes
+    state:               charging
+    warning-level:       none
+    energy:              29.56 Wh
+    energy-empty:        0 Wh
+    energy-full:         45.05 Wh
+    energy-full-design:  46.53 Wh
+    voltage-min-design:  7.58 V
+    capacity-level:      Normal
+    energy-rate:         32.951 W
+    voltage:             8.34 V
+    charge-cycles:       89
+    time to full:        28.2 minutes
+    percentage:          65%
+    capacity:            96.8193%
+    technology:          lithium-ion
+    icon-name:          'battery-full-charging-symbolic'
+  History (rate):
+    1795580120	32.951	charging
+  History (voltage):
+    1795580120	8.340	charging
+
+Device: /org/freedesktop/UPower/devices/line_power_ADP1
+  native-path:          ADP1
+  power supply:         yes
+  updated:              Tue 24 Nov 2026 12:14:46 PM PST (28850 seconds ago)
+  has history:          no
+  has statistics:       no
+  line-power
+    warning-level:       none
+    online:              yes
+    icon-name:          'ac-adapter-symbolic'
+
+Device: /org/freedesktop/UPower/devices/DisplayDevice
+  power supply:         yes
+  updated:              Tue 24 Nov 2026 08:15:20 PM PST (16 seconds ago)
+  has history:          no
+  has statistics:       no
+  battery
+sound cards: 0
+usb: 4 devices; typec ports: 
+######## after 30 s 20:16:06
+remoteproc adsp: offline
+remoteproc cdsp: running
+power supplies: ADP1 BAT1 qcom-battmgr-ac qcom-battmgr-bat qcom-battmgr-usb qcom-battmgr-wls 
+== BAT1
+   present=1
+   status=Charging
+   capacity=66
+   energy_now=29970000
+   energy_full=45050000
+   energy_full_design=46530000
+   power_now=35346000
+   voltage_now=8360000
+   cycle_count=89
+   manufacturer=DYN
+== qcom-battmgr-bat
+   present=cat: /sys/class/power_supply/qcom-battmgr-bat/present: Resource temporarily unavailable
+   status=cat: /sys/class/power_supply/qcom-battmgr-bat/status: Resource temporarily unavailable
+   capacity=cat: /sys/class/power_supply/qcom-battmgr-bat/capacity: Resource temporarily unavailable
+   energy_now=cat: /sys/class/power_supply/qcom-battmgr-bat/energy_now: Resource temporarily unavailable
+   energy_full=cat: /sys/class/power_supply/qcom-battmgr-bat/energy_full: Resource temporarily unavailable
+   energy_full_design=cat: /sys/class/power_supply/qcom-battmgr-bat/energy_full_design: Resource temporarily unavailable
+   power_now=cat: /sys/class/power_supply/qcom-battmgr-bat/power_now: Resource temporarily unavailable
+   voltage_now=cat: /sys/class/power_supply/qcom-battmgr-bat/voltage_now: Resource temporarily unavailable
+   cycle_count=cat: /sys/class/power_supply/qcom-battmgr-bat/cycle_count: Resource temporarily unavailable
+   manufacturer=cat: /sys/class/power_supply/qcom-battmgr-bat/manufacturer: Resource temporarily unavailable
+== ADP1
+   online=1
+== qcom-battmgr-ac
+   online=cat: /sys/class/power_supply/qcom-battmgr-ac/online: Resource temporarily unavailable
+######## after 90 s 20:17:06
+remoteproc adsp: offline
+remoteproc cdsp: running
+power supplies: ADP1 BAT1 qcom-battmgr-ac qcom-battmgr-bat qcom-battmgr-usb qcom-battmgr-wls 
+== BAT1
+   present=1
+   status=Charging
+   capacity=67
+   energy_now=30500000
+   energy_full=45050000
+   energy_full_design=46530000
+   power_now=35460000
+   voltage_now=8383000
+   cycle_count=89
+   manufacturer=DYN
+== qcom-battmgr-bat
+   present=cat: /sys/class/power_supply/qcom-battmgr-bat/present: Resource temporarily unavailable
+   status=cat: /sys/class/power_supply/qcom-battmgr-bat/status: Resource temporarily unavailable
+   capacity=cat: /sys/class/power_supply/qcom-battmgr-bat/capacity: Resource temporarily unavailable
+   energy_now=cat: /sys/class/power_supply/qcom-battmgr-bat/energy_now: Resource temporarily unavailable
+   energy_full=cat: /sys/class/power_supply/qcom-battmgr-bat/energy_full: Resource temporarily unavailable
+   energy_full_design=cat: /sys/class/power_supply/qcom-battmgr-bat/energy_full_design: Resource temporarily unavailable
+   power_now=cat: /sys/class/power_supply/qcom-battmgr-bat/power_now: Resource temporarily unavailable
+   voltage_now=cat: /sys/class/power_supply/qcom-battmgr-bat/voltage_now: Resource temporarily unavailable
+   cycle_count=cat: /sys/class/power_supply/qcom-battmgr-bat/cycle_count: Resource temporarily unavailable
+   manufacturer=cat: /sys/class/power_supply/qcom-battmgr-bat/manufacturer: Resource temporarily unavailable
+== ADP1
+   online=1
+== qcom-battmgr-ac
+   online=cat: /sys/class/power_supply/qcom-battmgr-ac/online: Resource temporarily unavailable
+######## kernel log
+[    0.883581] fedora kernel: Kernel command line: BOOT_IMAGE=(hd0,gpt2)/vmlinuz-7.3.5-300.sp11.1.fc45.aarch64 root=UUID=<redacted> ro rootflags=subvol=root rhgb quiet clk_ig
+[    1.420233] fedora kernel: qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier 1-0008 for /pmic-glink/connector@0
+[    1.439875] fedora kernel: qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier 3-0008 for /pmic-glink/connector@1
+[    1.470677] fedora kernel: qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier a600000.usb for /pmic-glink/connector@0
+[    1.495812] fedora kernel: qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier a800000.usb for /pmic-glink/connector@1
+[    1.496934] fedora kernel: remoteproc remoteproc0: adsp is available
+[    1.497166] fedora kernel: remoteproc remoteproc0: Direct firmware load for qcom/x1e80100/microsoft/Denali/qcadsp8380.mbn failed with error -2
+[    1.497259] fedora kernel: remoteproc remoteproc0: powering up adsp
+[    1.497345] fedora kernel: remoteproc remoteproc0: Direct firmware load for qcom/x1e80100/microsoft/Denali/qcadsp8380.mbn failed with error -2
+[    1.497437] fedora kernel: remoteproc remoteproc0: request_firmware failed: -2
+[    1.497626] fedora kernel: remoteproc remoteproc1: cdsp is available
+[    1.501009] fedora kernel: remoteproc remoteproc1: powering up cdsp
+[    1.502478] fedora kernel: remoteproc remoteproc1: Booting fw image qcom/x1e80100/microsoft/Denali/qccdsp8380.mbn, size 3174824
+[    1.597022] fedora kernel: remoteproc remoteproc1: remote processor cdsp is now up
+[    1.787141] fedora kernel: surface_serial_hub serial1-0: SAM firmware version: 27.201.139
+[    2.040323] fedora kernel: Modules linked in: panel_edp(+) msm nvme surface_battery(OE) surface_hid nvme_core surface_temp surface_aggregator_hub surface_charger surface_hid_core surface_fan surfac
+[    5.981305] fedora kernel: synth uevent: /devices/platform/pmic-glink/pmic_glink.power-supply.0/power_supply/qcom-battmgr-ac: failed to send uevent
+[    5.981332] fedora kernel: power_supply qcom-battmgr-ac: uevent: failed to send synthetic uevent: -11
+[    5.981947] fedora kernel: synth uevent: /devices/platform/pmic-glink/pmic_glink.power-supply.0/power_supply/qcom-battmgr-bat: failed to send uevent
+[    5.981959] fedora kernel: power_supply qcom-battmgr-bat: uevent: failed to send synthetic uevent: -11
+[    5.982721] fedora kernel: synth uevent: /devices/platform/pmic-glink/pmic_glink.power-supply.0/power_supply/qcom-battmgr-usb: failed to send uevent
+[    5.982737] fedora kernel: power_supply qcom-battmgr-usb: uevent: failed to send synthetic uevent: -11
+[    5.984388] fedora kernel: synth uevent: /devices/platform/pmic-glink/pmic_glink.power-supply.0/power_supply/qcom-battmgr-wls: failed to send uevent
+[    5.984399] fedora kernel: power_supply qcom-battmgr-wls: uevent: failed to send synthetic uevent: -11
+[    6.668077] fedora kernel: qcom,fastrpc 32300000.remoteproc:glink-edge.fastrpcglink-apps-dsp.-1.-1: no reserved DMA memory for FASTRPC
+[    6.677019] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@1: Adding to iommu group 14
+[    6.682011] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@2: Adding to iommu group 15
+[    6.693013] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@3: Adding to iommu group 16
+[    6.703052] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@4: Adding to iommu group 17
+[    6.716017] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@5: Adding to iommu group 18
+[    6.724014] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@6: Adding to iommu group 19
+[    6.730013] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@7: Adding to iommu group 20
+[    6.747148] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@8: Adding to iommu group 21
+[    6.755012] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@10: Adding to iommu group 22
+[    6.760025] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@11: Adding to iommu group 23
+[    6.765011] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@12: Adding to iommu group 24
+[    6.785015] fedora kernel: platform 32300000.remoteproc:glink-edge:fastrpc:compute-cb@13: Adding to iommu group 25
+######## kernel errors
+      2 integrity: Couldn't get size: Unsupported (0x8000000000000003)
+      1 surface_hid 01:15:01:06:00: unexpected descriptor length: got 0, expected 9
+      1 surface_hid 01:15:01:06:00: probe with driver surface_hid failed with error -71
+      1 remoteproc remoteproc0: request_firmware failed: -2
+      1 qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier a800000.usb for /pmic-glink/connector@1
+      1 qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier a600000.usb for /pmic-glink/connector@0
+      1 qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier 3-0008 for /pmic-glink/connector@1
+      1 qcom_pmic_glink pmic-glink: Failed to create device link (0x180) with supplier 1-0008 for /pmic-glink/connector@0
+      1 power_supply qcom-battmgr-wls: uevent: failed to send synthetic uevent: -11
+      1 power_supply qcom-battmgr-usb: uevent: failed to send synthetic uevent: -11
+      1 power_supply qcom-battmgr-bat: uevent: failed to send synthetic uevent: -11
+      1 power_supply qcom-battmgr-ac: uevent: failed to send synthetic uevent: -11
+      1 integrity: MODSIGN: Couldn't get UEFI db list
+######## failed units: 
+DONE

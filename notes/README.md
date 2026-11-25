@@ -11,7 +11,8 @@ project's documentation under `docs/`, and nothing here has been reviewed by the
 > - Everything was tested on one LCD unit with Secure Boot off. OLED and 5G models are untested.
 > - The installer step for installs onto a USB drive (`payload/80-sp11-removable-boot.ks`) is untested.
 > - The battery reading from the embedded controller (`payload/sp11-ec-battery.conf`, and a kernel commit that is
->   not in the project's kernel) is untested with the DSP offline.
+>   not in the project's kernel) worked in one boot with the DSP offline; hiding the DSP's unreadable second
+>   battery is untested.
 
 Start with [the report](report-no-windows.md): it is the short version of the whole no-Windows result.
 
@@ -70,6 +71,7 @@ calibration is in this repository.
 
 - [Live USB boot, before and after the firmware step](results/live-usb-test-result.txt)
 - [Boot with another maker's audio/sensor DSP firmware (refused)](results/adsp-swap-test-result.txt)
+- [Battery from the embedded controller with the DSP offline](results/ec-battery-dsp-offline-result.txt)
 
 ### Scripts
 
