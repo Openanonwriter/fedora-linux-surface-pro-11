@@ -134,17 +134,19 @@ Adreno (`glxinfo -B`: `freedreno`, `Accelerated: yes`) and gnome-shell idles at 
 | Touch/pen, keyboard/touchpad, tablet mode, rotation | ✅ | ✅ |
 | Speakers, microphone, cameras (front/rear/IR stream) | ✅ | ✅ |
 | Sensors | ✅ | ✅ |
-| Backlight slider and auto-brightness | Needs PWM fix | ✅ |
+| Backlight slider and auto-brightness | ✅ (kernel revision 4) | ✅ |
 | Wi-Fi, Bluetooth, battery, suspend, power profiles | ✅ | ✅ |
 | USB-C charging and data | ✅ | ✅ |
-| Hardware video decode | ❌ | ✅ |
+| Hardware video decode | ✅ (kernel revision 4) | ✅ |
 | IR face login (Windows Hello), NPU | ❌ | ❌ |
 | 5G / GPS | N/A (no modem) | ✅ on the 5G SKU |
 
 A [second LCD report](https://github.com/FadyAckad/fedora-linux-surface-pro-11/pull/4#issuecomment-7121238139)
 confirmed that the reported brightness can change without the panel dimming, and that only the first CPU cluster
-scales. Local fixes restored backlight control and scaling on all three clusters, and enabled hardware H.264/H.265
-encode and decode. Those fixes are not yet in this branch ([`docs/verified.md`](docs/verified.md)).
+scales. Kernel 7.3.5 revision 4 carries the fixes: a PWM backlight, the CPU topology and frequency-table fixes
+for all three clusters, and the video codec, whose firmware an LCD build takes from Fedora's `qcom-firmware`. On
+that unit H.264 and H.265 hardware encode and decode passed a 300-frame round trip
+([`docs/verified.md`](docs/verified.md)).
 
 ## Status and scope
 
